@@ -74,6 +74,9 @@ jobs:
           cache: npm
       - run: npm ci
 
+      - name: Validate the public-demo overlay
+        run: docker compose -f compose.yaml -f compose.public.yaml config --quiet
+
       # The exact stack a developer starts locally: Postgres + app in containers.
       - name: Start the stack
         run: docker compose up --build -d --wait --wait-timeout 120

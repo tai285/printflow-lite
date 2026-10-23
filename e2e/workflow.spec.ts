@@ -191,7 +191,7 @@ test.describe('accessibility (axe)', () => {
     await createQuote(page, unique('Axe'))
     const orderUrl = page.url()
 
-    for (const url of ['/orders', '/quotes/new', orderUrl]) {
+    for (const url of ['/', '/orders', '/quotes/new', orderUrl]) {
       await page.goto(url)
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
       const results = await new AxeBuilder({ page })
@@ -203,4 +203,29 @@ test.describe('accessibility (axe)', () => {
       ).toEqual([])
     }
   })
+})
+
+test('landing page, page titles and search-engine settings', async ({
+  page,
+  request,
+}) => {
+  const response = await page.goto('/')
+  await expect(page).toHaveTitle(/PrintFlow Lite/)
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(
+    'Quotes and orders for print shops',
+  )
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    'content',
+    /quote and order tracker/,
+  )
+
+  await page.getByRole('link', { name: 'View orders' }).click()
+  await expect(page).toHaveTitle('Orders · PrintFlow Lite')
+
+  // No public SITE_URL is configured in the local stack, so indexing is off.
+  expect(response?.headers()['x-robots-tag']).toBe('noindex, nofollow')
+  const robots = await request.get('/robots.txt')
+  expect(await robots.text()).toContain('Disallow: /')
+  expect((await request.get('/sitemap.xml')).status()).toBe(404)
+  expect((await request.get('/favicon.svg')).status()).toBe(200)
 })
