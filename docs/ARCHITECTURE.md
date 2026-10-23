@@ -6,7 +6,7 @@ One npm package with three source folders:
 
 ```
 shared/   pure TypeScript domain logic + Zod schemas (no React, no Node APIs)
-server/   Express 5 API on Node 24; in production also serves the built web app
+server/   Express 5 API on Node 24; in the container also serves the built web app
 web/      React SPA built by Vite (Vite's root)
 ```
 
@@ -44,13 +44,13 @@ If no row comes back, the order either doesn't exist (404) or someone else chang
 | Single package, three folders                   | One `package.json`, shared code via relative imports                                                                                                                               | npm workspaces: more config for no benefit at this size                                  |
 | Express 5                                       | Widely known, simple; Express 5 passes errors from async handlers to the error handler; easy to test with Supertest                                                                | Fastify: faster with better typing, but a steeper learning curve                         |
 | **Node runs the server's `.ts` files directly** | Node 24 strips types natively, so there's no server build step and no `tsx`/esbuild. `erasableSyntaxOnly` in `tsconfig.server.json` bans TS features that can't simply be stripped | esbuild bundle (the original plan; dropped once the Day 1 spike showed it wasn't needed) |
-| PostgreSQL                                      | Transactions, enums, jsonb; the database a real system would use                                                                                                                   | SQLite: simpler, but weaker for the deploy story                                         |
+| PostgreSQL                                      | Transactions, enums, jsonb; the database a real system would use                                                                                                                   | SQLite: simpler, but weaker for a realistic multi-user system                            |
 | Drizzle ORM + drizzle-kit                       | SQL-like and TypeScript-first, so SQL knowledge carries over                                                                                                                       | Prisma: heavier, separate schema language                                                |
 | Zod schemas in `shared/`                        | One definition gives server validation, client validation and TS types                                                                                                             | Hand-written checks duplicated on both sides                                             |
 | TanStack Query                                  | Handles loading, error, caching and refetch-after-change                                                                                                                           | Hand-written `useEffect` fetching                                                        |
 | React Router                                    | Deep links to `/orders/:id`; filters kept in the URL                                                                                                                               | View-state switch without URLs                                                           |
-| Docker (multi-stage image + Compose)            | Same image locally, in CI and in production; Postgres without a native install                                                                                                     | Native installs and platform buildpacks                                                  |
-| Express serves the SPA in production            | One deploy, one URL, no CORS                                                                                                                                                       | Separate frontend host plus CORS configuration                                           |
+| Docker (multi-stage image + Compose)            | The whole system starts with one command, and the same image is used locally and in CI; Postgres without a native install                                                          | Native installs and platform buildpacks                                                  |
+| Express serves the SPA in the container         | One service, one URL, no CORS                                                                                                                                                      | Separate frontend host plus CORS configuration                                           |
 | oxlint                                          | Ships with the current Vite template; fast, minimal config                                                                                                                         | ESLint: more plugins, more config                                                        |
 | TypeScript 6.0                                  | Matches the Vite template's pinned version (npm's default had moved to 7.x)                                                                                                        | TypeScript 7: newer, but the ecosystem hasn't been checked against it here               |
 
@@ -59,7 +59,7 @@ If no row comes back, the order either doesn't exist (404) or someone else chang
 - `Dockerfile` (multi-stage): `deps` installs dependencies, `build` builds the web app, `runtime` is a slim Node 24 image with production dependencies, `server/`, `shared/`, `drizzle/` and `dist/web`. It runs as a non-root user and starts with `node server/index.ts`.
 - `compose.yaml`: `db` (postgres:17 with a healthcheck and a named volume) and `app` (the image above, waits for a healthy `db`, runs migrations on start). `docker compose up --build` gives a complete local system on http://localhost:3000.
 - Local development can use only the `db` service (`docker compose up -d db`) with `npm run dev` on the host.
-- Production runs the same image on Render (Docker runtime); CI builds the image on every PR so a broken Dockerfile fails early.
+- The system is run locally with Docker only; there is no hosted deployment. CI builds the image and boots the full Compose stack on every PR so a broken Dockerfile or migration fails early.
 
 ## Testing boundaries
 
@@ -74,19 +74,16 @@ If no row comes back, the order either doesn't exist (404) or someone else chang
 PR opened/updated ──► ci.yml
   quality       npm ci → lint → format:check → typecheck → test → build
   integration   postgres:17 service → db:migrate → integration tests
-  docker        docker build (no push) + container health check
-  e2e           build → start server on CI Postgres → Playwright → upload trace on failure
+  stack         docker compose up --build → wait for health → smoke script → logs on failure
+  e2e           Compose stack → Playwright → upload report on failure
 
-merge to main ──► ci.yml ──success──► deploy.yml (environment: production)
-  1. db:migrate against the production database   secret DATABASE_URL
-  2. trigger the Render deploy hook                secret RENDER_DEPLOY_HOOK
-  3. poll /api/health until version == commit SHA (retries cover cold start)
-  4. read-only smoke checks → red run on any failure
+(the same checks run on pushes to main)
 ```
 
-- Render auto-deploy is **off**, so only commits that passed CI are deployed.
-- Migrations are additive (expand/contract), so the previous build keeps working right after a migration.
-- Rollback means re-deploying the previous build from the Render dashboard.
+Delivery is local: `docker compose up --build` starts Postgres and the app, runs migrations, and serves everything on http://localhost:3000. The `stack` CI job proves this on every PR, using the exact same Compose file.
+
+- Migrations are additive, so older code keeps working right after one.
+- Rolling back means checking out the previous commit and rebuilding the image.
 
 ## Security basics
 
@@ -94,5 +91,5 @@ merge to main ──► ci.yml ──success──► deploy.yml (environment: p
 - Queries are parameterised through Drizzle.
 - 10 kB JSON body limit; `x-powered-by` disabled; Helmet headers; rate limiting on write endpoints (the demo has no authentication).
 - Generic 500 messages in production.
-- Secrets live only in `.env` (git-ignored) and in GitHub/Render secret storage.
+- Secrets live only in `.env` (git-ignored); `.env.example` documents the variables.
 - The container runs as a non-root user.

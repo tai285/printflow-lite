@@ -35,15 +35,15 @@ The whole system is built first (backend, then frontend, then containers and pip
 - [ ] Printable quote
 - [ ] Component tests
 
-## Phase 5: Containers and delivery
+## Phase 5: Containers and CI
 
 - [ ] Multi-stage `Dockerfile`; `compose.yaml` with app + Postgres
 - [ ] CI builds the image; Playwright E2E job
-- [ ] `deploy.yml`: migrate → deploy → wait for health SHA → smoke checks
+- [ ] Smoke script; CI `stack` job boots the Compose stack and smoke-tests it
 - [ ] Dependabot
 
 ## Phase 6: Release
 
 - [ ] README with screenshots, API reference, demo script
-- [ ] Final regression and production smoke test
+- [ ] Final regression on the local Docker stack
 - [ ] Study / interview preparation (owner)

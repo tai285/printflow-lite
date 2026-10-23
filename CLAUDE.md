@@ -4,7 +4,7 @@ Guidance for AI coding assistants working in this repo.
 
 ## Purpose
 
-PrintFlow Lite is a portfolio project: a full-stack quote and order tracker for a fictional print shop. The owner wants the whole system built, tested, containerized and deployed first, and will study the code afterwards. Build complete, working features; keep the code readable so it can be studied later.
+PrintFlow Lite is a portfolio project: a full-stack quote and order tracker for a fictional print shop. The owner wants the whole system built, tested and containerized first (everything runs locally in Docker; there is no hosted deployment), and will study the code afterwards. Build complete, working features; keep the code readable so it can be studied later.
 
 ## Rules
 

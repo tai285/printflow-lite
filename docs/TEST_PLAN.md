@@ -12,13 +12,13 @@
 | E2E                   | Playwright, `e2e/`                                            | Quote → save → list → advance to Done → status still correct after reload                                                                                                                                                                            | UI + API + DB + routing + build together                       |
 | Static                | `tsc -b`, oxlint, Prettier `--check`                          | Every PR                                                                                                                                                                                                                                             | Type errors and style drift                                    |
 | Build                 | `vite build`, `node server/index.ts` start                    | Every PR                                                                                                                                                                                                                                             | "Works in dev, fails in prod"                                  |
-| Deploy smoke          | `scripts/smoke.ts` in `deploy.yml`                            | `/api/health` has the expected SHA and db ok; `GET /api/orders` → 200; `GET /` → HTML. Read-only                                                                                                                                                     | Bad deploys, missing env vars, failed migrations               |
+| Stack smoke           | `scripts/smoke.mjs` in the CI `stack` job and run locally     | Against the Compose stack: `/api/health` db ok and version; `GET /api/orders` → 200 array; `GET /` → HTML; create + fetch one order                                                                                                                  | Broken image, missing env vars, failed migrations              |
 
 Coverage is a guide, not a target.
 
 ## Manual checklist
 
-Record the date and result each time it's run against the live URL.
+Record the date and result each time it's run against the local Docker stack (http://localhost:3000).
 
 | ID  | Scenario                              | Expected                                                       | Last run |
 | --- | ------------------------------------- | -------------------------------------------------------------- | -------- |
