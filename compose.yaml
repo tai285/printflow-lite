@@ -1,0 +1,41 @@
+# Whole local system: `docker compose up --build`
+#   app -> http://localhost:3000 (UI + API)
+#   db  -> localhost:5432 (user/password/database: printflow)
+name: printflow-lite
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: printflow
+      POSTGRES_PASSWORD: printflow
+      POSTGRES_DB: printflow
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U printflow -d printflow']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-dev}
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://printflow:printflow@db:5432/printflow
+      NODE_ENV: production
+      PORT: '3000'
+      # Load fictional sample orders when the database is empty.
+      SEED_ON_START: ${SEED_ON_START:-true}
+    ports:
+      - '3000:3000'
+
+volumes:
+  pgdata:

@@ -4,6 +4,7 @@
   "ignorePatterns": ["dist", "coverage"],
   "rules": {
     "react/rules-of-hooks": "error",
+    "vitest/no-conditional-expect": "off",
     "react/only-export-components": ["warn", { "allowConstantExport": true }]
   }
 }

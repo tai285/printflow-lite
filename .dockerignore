@@ -1,0 +1,17 @@
+node_modules
+dist
+coverage
+.git
+.github
+.env
+.env.*
+!.env.example
+docs
+e2e
+test-results
+playwright-report
+*.md
+!README.md
+Dockerfile
+compose.yaml
+.dockerignore

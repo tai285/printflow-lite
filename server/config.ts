@@ -1,0 +1,37 @@
+import { z } from 'zod'
+
+const booleanString = z
+  .enum(['true', 'false'])
+  .transform((value) => value === 'true')
+
+const envSchema = z.object({
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development'),
+  /** Git commit of the running build, reported by /api/health. */
+  GIT_SHA: z.string().min(1).default('dev'),
+  /** Run pending database migrations when the server starts. */
+  AUTO_MIGRATE: booleanString.default(true),
+  /** Insert fictional sample orders on start if the database has none. */
+  SEED_ON_START: booleanString.default(false),
+  /** Built web app to serve; skipped when the folder does not exist. */
+  WEB_DIST: z.string().default('dist/web'),
+  /** Max write requests per IP per minute. */
+  RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(120),
+})
+
+export type Config = z.infer<typeof envSchema>
+
+/** Reads and validates environment variables, failing fast with a clear message. */
+export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+  const parsed = envSchema.safeParse(env)
+  if (!parsed.success) {
+    const problems = parsed.error.issues
+      .map((issue) => `  ${issue.path.join('.')}: ${issue.message}`)
+      .join('\n')
+    throw new Error(`Invalid environment configuration:\n${problems}`)
+  }
+  return parsed.data
+}

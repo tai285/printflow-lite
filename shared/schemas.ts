@@ -65,11 +65,11 @@ void _assertAssignable
 
 function issuesToErrors(
   issues: readonly z.core.$ZodIssue[],
-  prefix = '',
+  rootKey = 'body',
 ): FieldErrors {
   const errors: FieldErrors = {}
   for (const issue of issues) {
-    const key = prefix + (issue.path.length ? issue.path.join('.') : 'input')
+    const key = issue.path.length ? issue.path.join('.') : rootKey
     errors[key] ??= issue.message
   }
   return errors
@@ -82,7 +82,10 @@ export type ValidationResult<T> =
 export function validateQuote(raw: unknown): ValidationResult<QuoteInput> {
   const parsed = quoteInputSchema.safeParse(raw)
   if (!parsed.success) {
-    return { ok: false, errors: issuesToErrors(parsed.error.issues) }
+    return {
+      ok: false,
+      errors: issuesToErrors(parsed.error.issues, 'productId'),
+    }
   }
   const input: QuoteInput = parsed.data
   const errors = checkBusinessRules(input)
