@@ -3,10 +3,56 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PrintFlow Lite</title>
+    <title>PrintFlow Lite: quotes and orders for print shops</title>
+    <meta
+      name="description"
+      content="PrintFlow Lite is a demo quote and order tracker for a fictional print shop: live itemised pricing for T-shirts, business cards and banners, and an order workflow from quote to done."
+    />
+    <meta name="theme-color" content="#4f46e5" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href="__SITE_URL__/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PrintFlow Lite" />
+    <meta
+      property="og:title"
+      content="PrintFlow Lite: quotes and orders for print shops"
+    />
+    <meta
+      property="og:description"
+      content="Live itemised pricing and an order workflow for a fictional print shop. A full-stack TypeScript demo."
+    />
+    <meta property="og:url" content="__SITE_URL__/" />
+    <meta property="og:image" content="__SITE_URL__/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="__SITE_URL__/og.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "PrintFlow Lite",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "Demo quote and order tracker for a fictional print shop.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "MYR" }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <main
+        style="max-width: 40rem; margin: 2rem auto; font-family: sans-serif"
+      >
+        <h1>PrintFlow Lite</h1>
+        <p>
+          A quote and order tracker for a fictional print shop. Build a quote
+          with live pricing, save it, and move the order from quote to done.
+          This app needs JavaScript to run.
+        </p>
+      </main>
+    </noscript>
     <script type="module" src="/main.tsx"></script>
   </body>
 </html>

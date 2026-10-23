@@ -1,10 +1,12 @@
 import { useNavigate } from 'react-router'
 import { useCreateOrder } from '../api/orders.ts'
 import { ApiError } from '../api/client.ts'
+import { useDocumentTitle } from '../lib/useDocumentTitle.ts'
 import QuoteForm from '../components/QuoteForm.tsx'
 import { Notice } from '../components/ui.tsx'
 
 export default function NewQuotePage() {
+  useDocumentTitle('New quote')
   const navigate = useNavigate()
   const create = useCreateOrder()
 

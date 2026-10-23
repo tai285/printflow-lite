@@ -17,9 +17,11 @@ import {
   primaryButton,
   secondaryButton,
 } from '../components/ui.tsx'
+import { useDocumentTitle } from '../lib/useDocumentTitle.ts'
 import { describeInput, formatDate, productName } from '../lib/format.ts'
 
 export default function OrdersPage() {
+  useDocumentTitle('Orders')
   // Search and filter live in the URL so they survive reload and can be shared.
   const [params, setParams] = useSearchParams()
   const q = params.get('q') ?? ''

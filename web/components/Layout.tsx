@@ -19,7 +19,7 @@ export default function Layout() {
       <header className="border-b border-slate-200 bg-white print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <Link
-            to="/orders"
+            to="/"
             className="text-lg font-semibold tracking-tight text-slate-900"
           >
             PrintFlow <span className="text-indigo-600">Lite</span>

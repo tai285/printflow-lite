@@ -12,6 +12,7 @@ import {
   primaryButton,
   secondaryButton,
 } from '../components/ui.tsx'
+import { useDocumentTitle } from '../lib/useDocumentTitle.ts'
 import { describeInput, formatDateTime, productName } from '../lib/format.ts'
 
 const ACTION_LABELS: Record<Exclude<OrderStatus, 'done'>, string> = {
@@ -26,6 +27,7 @@ export default function OrderDetailPage() {
   const location = useLocation()
   const justCreated = (location.state as { created?: boolean } | null)?.created
   const order = useOrder(id)
+  useDocumentTitle(order.data ? `Order ${order.data.number}` : 'Order')
   const transition = useTransition(id)
 
   if (order.isPending) return <Spinner label="Loading order…" />
