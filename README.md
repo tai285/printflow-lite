@@ -27,6 +27,15 @@ docker compose down        # stop (data is kept in a Docker volume)
 docker compose down -v     # stop and delete the data
 ```
 
+## Public demo (free, self-hosted)
+
+```bash
+npm run public:up      # starts the stack and a free Cloudflare tunnel, prints a public https URL
+npm run public:down    # stop publishing
+```
+
+No account, domain or VPS is needed: the Docker stack runs on your machine and a Cloudflare quick tunnel exposes it. Visitor data is wiped hourly and write requests are rate limited. Details, limits, SEO and how to get a stable free address are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
 ## Features
 
 - **Quote builder**: T-shirts, business cards and vinyl banners with product-specific options, tiered pricing, setup fees and a rush surcharge. The price updates live and every line is itemised.
@@ -66,17 +75,18 @@ npm run db:migrate && npm run db:seed
 npm run dev                      # web http://localhost:5173 (proxies /api), API http://localhost:3000
 ```
 
-| Command                                       | What it does                                                  |
-| --------------------------------------------- | ------------------------------------------------------------- |
-| `npm run dev`                                 | Vite dev server + API with auto-restart                       |
-| `npm test`                                    | Unit and component tests (no database needed)                 |
-| `npm run test:int`                            | API integration tests against real PostgreSQL                 |
-| `npm run e2e`                                 | Browser tests against the running Docker stack                |
-| `npm run smoke`                               | Smoke checks against the running stack                        |
-| `npm run typecheck` / `lint` / `format:check` | Static checks                                                 |
-| `npm run build`                               | Type-check and build the web app to `dist/web`                |
-| `npm run db:generate`                         | Generate a SQL migration after changing `server/db/schema.ts` |
-| `npm run db:migrate` / `db:seed`              | Apply migrations / replace sample orders                      |
+| Command                                            | What it does                                                  |
+| -------------------------------------------------- | ------------------------------------------------------------- |
+| `npm run dev`                                      | Vite dev server + API with auto-restart                       |
+| `npm test`                                         | Unit and component tests (no database needed)                 |
+| `npm run test:int`                                 | API integration tests against real PostgreSQL                 |
+| `npm run e2e`                                      | Browser tests against the running Docker stack                |
+| `npm run smoke`                                    | Smoke checks against the running stack                        |
+| `npm run public:up` / `public:url` / `public:down` | Publish the stack through a free Cloudflare tunnel            |
+| `npm run typecheck` / `lint` / `format:check`      | Static checks                                                 |
+| `npm run build`                                    | Type-check and build the web app to `dist/web`                |
+| `npm run db:generate`                              | Generate a SQL migration after changing `server/db/schema.ts` |
+| `npm run db:migrate` / `db:seed`                   | Apply migrations / replace sample orders                      |
 
 `npm run test:int` needs PostgreSQL (`docker compose up -d db`); it creates a separate `printflow_test` database. First-time browser tests need `npx playwright install chromium`.
 
@@ -130,12 +140,13 @@ docs/     spec, architecture, plan, test plan, AI code-review log
 - No authentication: the demo is one shared workspace. Anyone who can reach the app can see and change orders.
 - Saved quotes cannot be edited and orders cannot be deleted from the UI.
 - Prices exclude tax and are fictional.
-- Local Docker only; there is no hosted deployment.
+- Hosting is self-hosted: the public demo is only up while your machine runs it, and its URL changes on restart.
 
 ## Documentation
 
 - [Product spec](docs/PRODUCT_SPEC.md): users, scope, stories, pricing rules
 - [Architecture](docs/ARCHITECTURE.md): structure, data model, decisions, CI
+- [Deployment and SEO](docs/DEPLOYMENT.md): free self-hosting with Cloudflare Tunnel
 - [Implementation plan](docs/IMPLEMENTATION_PLAN.md): build checklist
 - [Test plan](docs/TEST_PLAN.md): test layers and manual checklist
 - [AI code-review log](docs/AI_CODE_REVIEW_LOG.md): how AI-generated code was checked

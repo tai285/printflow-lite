@@ -61,6 +61,10 @@ If no row comes back, the order either doesn't exist (404) or someone else chang
 - Local development can use only the `db` service (`docker compose up -d db`) with `npm run dev` on the host.
 - The system is run locally with Docker only; there is no hosted deployment. CI builds the image and boots the full Compose stack on every PR so a broken Dockerfile or migration fails early.
 
+## Hosting
+
+The stack is self-hosted. `compose.public.yaml` adds a `cloudflared` quick tunnel in front of the app, plus demo guard rails (hourly data reset, stricter rate limit, trusted-proxy setting). See [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Testing boundaries
 
 - `shared/`: pure unit tests (pricing, validation, status rules).

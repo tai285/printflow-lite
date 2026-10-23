@@ -42,7 +42,14 @@ The whole system is built first (backend, then frontend, then containers and pip
 - [x] Smoke script; CI `stack` job boots the Compose stack and smoke-tests it
 - [x] Dependabot
 
-## Phase 6: Release
+## Phase 6: Free self-hosting and SEO
+
+- [x] Cloudflare quick tunnel overlay (`compose.public.yaml`) with demo reset, rate limit and trusted proxy
+- [x] Landing page, titles, Open Graph, canonical, JSON-LD, robots.txt, sitemap.xml, noindex until `SITE_URL` is set
+- [x] Deployment and SEO guide
+- [ ] Stable free address (free subdomain + named tunnel), owner action
+
+## Phase 7: Release
 
 - [x] README with screenshots, API reference, demo script
 - [x] Final regression on the local Docker stack
