@@ -229,3 +229,101 @@ test('landing page, page titles and search-engine settings', async ({
   expect((await request.get('/sitemap.xml')).status()).toBe(404)
   expect((await request.get('/favicon.svg')).status()).toBe(200)
 })
+
+test.describe('dark mode', () => {
+  test('toggle switches theme, persists and survives reload without a flash', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: 'light' })
+    await page.goto('/orders')
+    const toggle = page.getByRole('switch', { name: 'Dark mode' })
+    const html = page.locator('html')
+
+    await expect(toggle).toHaveAttribute('aria-checked', 'false')
+    await expect(html).not.toHaveClass(/dark/)
+    const lightBackground = await page.evaluate(
+      () => getComputedStyle(document.body).backgroundColor,
+    )
+
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-checked', 'true')
+    await expect(html).toHaveClass(/dark/)
+    const darkBackground = await page.evaluate(
+      () => getComputedStyle(document.body).backgroundColor,
+    )
+    expect(darkBackground).not.toBe(lightBackground)
+
+    // The choice is remembered across reloads and across pages.
+    await page.reload()
+    await expect(html).toHaveClass(/dark/)
+    await page.goto('/quotes/new')
+    await expect(html).toHaveClass(/dark/)
+
+    await page.getByRole('switch', { name: 'Dark mode' }).click()
+    await expect(html).not.toHaveClass(/dark/)
+  })
+
+  test('follows the system setting until the user chooses', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await page.goto('/')
+    await expect(page.locator('html')).toHaveClass(/dark/)
+    await expect(
+      page.getByRole('switch', { name: 'Dark mode' }),
+    ).toHaveAttribute('aria-checked', 'true')
+  })
+
+  test('is keyboard operable', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' })
+    await page.goto('/')
+    await page.getByRole('switch', { name: 'Dark mode' }).focus()
+    await page.keyboard.press('Space')
+    await expect(page.locator('html')).toHaveClass(/dark/)
+  })
+
+  test('every page passes the WCAG A/AA scan (including colour contrast) in dark mode', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await createQuote(page, unique('DarkAxe'))
+    const orderUrl = page.url()
+    await page.request.post('/api/samples')
+
+    // Include a validation-error state, which uses the red palette.
+    await page.goto('/quotes/new')
+    await page.getByLabel(/Quantity/).fill('24')
+    await page.getByRole('button', { name: 'Save quote' }).click()
+
+    const urls = ['/', '/orders', '/quotes/new', orderUrl]
+    for (const url of urls) {
+      if (url !== '/quotes/new') await page.goto(url)
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+      await expect(page.locator('html')).toHaveClass(/dark/)
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa'])
+        .analyze()
+      expect(
+        results.violations.map(
+          (v) =>
+            `${v.id}: ${v.help} (${v.nodes
+              .slice(0, 3)
+              .map((n) => n.target.join(' '))
+              .join(', ')})`,
+        ),
+        `axe violations in dark mode on ${url}`,
+      ).toEqual([])
+    }
+  })
+
+  test('printed quotes stay light even in dark mode', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await createQuote(page, unique('DarkPrint'))
+    await page.emulateMedia({ colorScheme: 'dark', media: 'print' })
+
+    const background = await page.evaluate(
+      () => getComputedStyle(document.body).backgroundColor,
+    )
+    expect(background).toBe('rgb(255, 255, 255)')
+  })
+})
