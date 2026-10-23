@@ -49,7 +49,7 @@ export default function HomePage() {
           {FEATURES.map((feature) => (
             <li
               key={feature.title}
-              className="rounded-lg border border-slate-200 bg-white p-5"
+              className="rounded-lg border border-slate-200 bg-surface p-5"
             >
               <h3 className="text-base font-semibold">{feature.title}</h3>
               <p className="mt-2 text-sm text-slate-600">{feature.text}</p>

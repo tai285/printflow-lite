@@ -1,11 +1,84 @@
 @import 'tailwindcss';
 
+/* Dark mode is class based: <html class="dark">, set by the theme toggle. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* The accent used for filled buttons; white text on it passes AA in both themes. */
+  --color-brand: #4f46e5;
+  --color-brand-hover: #4338ca;
+  /* Cards, header and form fields. Not `white`, so text-white stays white. */
+  --color-surface: #ffffff;
+}
+
 @layer base {
   html {
     color-scheme: light;
   }
   body {
     @apply bg-slate-50 text-slate-900 antialiased;
+  }
+}
+
+/*
+ * Dark theme: instead of adding `dark:` classes to every element, the colour
+ * scales the app uses are remapped, so existing classes (bg-white,
+ * text-slate-600, bg-green-100, ...) pick up dark values. Light-mode shade N
+ * maps to roughly shade (950 - N): backgrounds become dark, text becomes light.
+ *
+ * Surfaces:  page #020617 (slate-950)  <  cards #0f172a (surface -> slate-900)
+ * Text:      primary #f1f5f9 (13+:1 on cards), secondary #a8b5c8, muted #94a3b8
+ *            (all pass WCAG AA 4.5:1 on both page and cards)
+ * Screen only, so printed quotes stay light.
+ */
+@media screen {
+  .dark {
+    color-scheme: dark;
+
+    --color-surface: #0f172a;
+
+    --color-slate-50: #020617;
+    --color-slate-100: #1e293b;
+    --color-slate-200: #273449;
+    --color-slate-300: #475569;
+    --color-slate-400: #64748b;
+    --color-slate-500: #94a3b8;
+    --color-slate-600: #a8b5c8;
+    --color-slate-700: #cbd5e1;
+    --color-slate-800: #e2e8f0;
+    --color-slate-900: #f1f5f9;
+    --color-slate-950: #f8fafc;
+
+    /* Accent used as text, borders and focus rings: lighter so it reads on dark. */
+    --color-indigo-50: #1e1b4b;
+    --color-indigo-100: #312e81;
+    --color-indigo-600: #818cf8;
+    --color-indigo-700: #a5b4fc;
+
+    /* Status and notice colours: tinted dark backgrounds with light text. */
+    --color-blue-50: #172554;
+    --color-blue-300: #1d4ed8;
+    --color-blue-800: #bfdbfe;
+
+    --color-amber-50: #451a03;
+    --color-amber-300: #b45309;
+    --color-amber-900: #fde68a;
+
+    --color-emerald-50: #022c22;
+    --color-emerald-300: #047857;
+    --color-emerald-800: #a7f3d0;
+
+    --color-green-50: #052e16;
+    --color-green-100: #14532d;
+    --color-green-300: #15803d;
+    --color-green-400: #16a34a;
+    --color-green-900: #bbf7d0;
+
+    --color-red-50: #450a0a;
+    --color-red-300: #b91c1c;
+    --color-red-600: #f87171;
+    --color-red-700: #fca5a5;
+    --color-red-900: #fecaca;
   }
 }
 

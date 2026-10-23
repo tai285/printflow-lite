@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet } from 'react-router'
+import ThemeToggle from './ThemeToggle.tsx'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-md px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-indigo-600 ${
@@ -12,11 +13,11 @@ export default function Layout() {
     <div className="min-h-screen">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10 focus:rounded focus:bg-white focus:px-3 focus:py-2"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-10 focus:rounded focus:bg-surface focus:px-3 focus:py-2"
       >
         Skip to content
       </a>
-      <header className="border-b border-slate-200 bg-white print:hidden">
+      <header className="border-b border-slate-200 bg-surface print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <Link
             to="/"
@@ -24,14 +25,17 @@ export default function Layout() {
           >
             PrintFlow <span className="text-indigo-600">Lite</span>
           </Link>
-          <nav aria-label="Main" className="flex gap-1">
-            <NavLink to="/orders" className={navClass}>
-              Orders
-            </NavLink>
-            <NavLink to="/quotes/new" className={navClass}>
-              New quote
-            </NavLink>
-          </nav>
+          <div className="flex items-center gap-3">
+            <nav aria-label="Main" className="flex gap-1">
+              <NavLink to="/orders" className={navClass}>
+                Orders
+              </NavLink>
+              <NavLink to="/quotes/new" className={navClass}>
+                New quote
+              </NavLink>
+            </nav>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
       <main id="main" className="mx-auto max-w-6xl px-4 py-6">

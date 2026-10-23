@@ -131,7 +131,7 @@ export default function QuoteForm({
       <div className="space-y-6">
         <section
           aria-labelledby="customer-heading"
-          className="rounded-lg border border-slate-200 bg-white p-5"
+          className="rounded-lg border border-slate-200 bg-surface p-5"
         >
           <h2 id="customer-heading" className="mb-4 text-base font-semibold">
             Customer
@@ -172,7 +172,7 @@ export default function QuoteForm({
 
         <section
           aria-labelledby="job-heading"
-          className="rounded-lg border border-slate-200 bg-white p-5"
+          className="rounded-lg border border-slate-200 bg-surface p-5"
         >
           <h2 id="job-heading" className="mb-4 text-base font-semibold">
             Job details
@@ -361,7 +361,7 @@ export default function QuoteForm({
 
       <aside
         aria-labelledby="summary-heading"
-        className="h-fit rounded-lg border border-slate-200 bg-white p-5 lg:sticky lg:top-4"
+        className="h-fit rounded-lg border border-slate-200 bg-surface p-5 lg:sticky lg:top-4"
       >
         <h2 id="summary-heading" className="mb-3 text-base font-semibold">
           Quote summary

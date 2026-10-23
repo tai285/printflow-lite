@@ -69,7 +69,7 @@ export default function OrdersPage() {
         </Link>
       </div>
 
-      <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
+      <div className="space-y-3 rounded-lg border border-slate-200 bg-surface p-4">
         <div>
           <label htmlFor="order-search" className="sr-only">
             Search orders
@@ -96,8 +96,8 @@ export default function OrdersPage() {
               onClick={() => updateParams({ status: value })}
               className={`rounded-full border px-3 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
                 status === value
-                  ? 'border-indigo-600 bg-indigo-600 text-white'
-                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                  ? 'border-brand bg-brand text-white'
+                  : 'border-slate-300 bg-surface text-slate-700 hover:bg-slate-100'
               }`}
             >
               {value === '' ? 'All' : STATUS_LABELS[value]}
@@ -174,12 +174,12 @@ export default function OrdersPage() {
             {list.length} order{list.length === 1 ? '' : 's'}
             {filtered ? ' found' : ''}
           </p>
-          <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-surface">
             {list.map((order) => (
               <li key={order.id}>
                 <Link
                   to={`/orders/${order.id}`}
-                  className="grid gap-x-4 gap-y-1 px-4 py-3 hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:grid-cols-[7rem_1fr_8rem_7rem] sm:items-center"
+                  className="grid gap-x-4 gap-y-1 px-4 py-3 hover:bg-slate-100 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600 sm:grid-cols-[7rem_1fr_8rem_7rem] sm:items-center"
                 >
                   <span className="font-mono text-sm font-medium text-indigo-700">
                     {order.number}

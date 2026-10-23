@@ -137,7 +137,7 @@ export default function OrderDetailPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <section
           aria-labelledby="quote-heading"
-          className="rounded-lg border border-slate-200 bg-white p-5 print:border-0 print:p-0"
+          className="rounded-lg border border-slate-200 bg-surface p-5 print:border-0 print:p-0"
         >
           <h2 id="quote-heading" className="mb-1 text-base font-semibold">
             {productName(data.productId)}
@@ -156,7 +156,7 @@ export default function OrderDetailPage() {
         <div className="space-y-6">
           <section
             aria-labelledby="customer-heading"
-            className="rounded-lg border border-slate-200 bg-white p-5 print:border-0 print:p-0"
+            className="rounded-lg border border-slate-200 bg-surface p-5 print:border-0 print:p-0"
           >
             <h2 id="customer-heading" className="mb-2 text-base font-semibold">
               Customer
@@ -169,7 +169,7 @@ export default function OrderDetailPage() {
 
           <section
             aria-labelledby="history-heading"
-            className="rounded-lg border border-slate-200 bg-white p-5 print:hidden"
+            className="rounded-lg border border-slate-200 bg-surface p-5 print:hidden"
           >
             <h2 id="history-heading" className="mb-3 text-base font-semibold">
               History
