@@ -352,3 +352,32 @@ describe('seed data', () => {
     expect(await seedIfEmpty(ctx.db)).toBe(8)
   })
 })
+
+describe('sample data endpoints', () => {
+  it('POST /api/samples replaces sample orders and leaves real ones alone', async () => {
+    await create({ customerName: 'Real Customer' })
+
+    const first = await api().post('/api/samples')
+    expect(first.status).toBe(201)
+    expect(first.body.count).toBe(8)
+    // Loading twice must not duplicate the samples.
+    await api().post('/api/samples')
+
+    const all = (await api().get('/api/orders')).body
+    expect(all).toHaveLength(9)
+    expect(all.filter((o: { isSample: boolean }) => !o.isSample)).toHaveLength(
+      1,
+    )
+  })
+
+  it('DELETE /api/samples removes only sample orders', async () => {
+    await create({ customerName: 'Real Customer' })
+    await api().post('/api/samples')
+
+    const res = await api().delete('/api/samples')
+    expect(res.body.count).toBe(8)
+    expect(names((await api().get('/api/orders')).body)).toEqual([
+      'Real Customer',
+    ])
+  })
+})

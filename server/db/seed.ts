@@ -146,6 +146,15 @@ export async function seedSamples(db: Db): Promise<number> {
   return SAMPLES.length
 }
 
+/** Deletes all sample orders (and their history). Returns how many were removed. */
+export async function removeSamples(db: Db): Promise<number> {
+  const removed = await db
+    .delete(orders)
+    .where(eq(orders.isSample, true))
+    .returning({ id: orders.id })
+  return removed.length
+}
+
 /** Seeds only when there are no orders at all. Returns how many were inserted. */
 export async function seedIfEmpty(db: Db): Promise<number> {
   if ((await countOrders(db)) > 0) return 0
@@ -158,7 +167,7 @@ if (import.meta.main) {
   if (!url) throw new Error('DATABASE_URL is required')
   const handle = createDb(url)
   try {
-    await handle.db.delete(orders).where(eq(orders.isSample, true))
+    await removeSamples(handle.db)
     console.log(`Seeded ${await seedSamples(handle.db)} sample orders`)
   } finally {
     await handle.close()

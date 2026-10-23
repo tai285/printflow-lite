@@ -5,6 +5,7 @@
   "rules": {
     "react/rules-of-hooks": "error",
     "vitest/no-conditional-expect": "off",
+    "vitest/require-mock-type-parameters": "off",
     "react/only-export-components": ["warn", { "allowConstantExport": true }]
   }
 }

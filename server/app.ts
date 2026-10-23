@@ -7,6 +7,7 @@ import { sql } from 'drizzle-orm'
 import type { Db } from './db/client.ts'
 import { apiNotFound, errorHandler } from './http/errors.ts'
 import { ordersRouter } from './orders/routes.ts'
+import { samplesRouter } from './samples/routes.ts'
 
 export type AppOptions = {
   db: Db
@@ -66,6 +67,7 @@ export function createApp({
   })
 
   app.use('/api/orders', ordersRouter(db, writeLimiter))
+  app.use('/api/samples', samplesRouter(db, writeLimiter))
   app.use('/api', apiNotFound)
 
   if (webDist && fs.existsSync(path.join(webDist, 'index.html'))) {
