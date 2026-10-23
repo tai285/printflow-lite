@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint, typecheck, test, build
+    name: Lint, typecheck, unit tests, build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -31,5 +31,76 @@ jobs:
       - run: npm test
       - run: npm run build
 
-  # Day 3: `integration` job with a postgres:17 service container.
-  # Day 8: `e2e` job running Playwright against the built app.
+  integration:
+    name: Integration tests (API + PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: printflow
+          POSTGRES_PASSWORD: printflow
+          POSTGRES_DB: printflow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U printflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run test:int
+        env:
+          TEST_DATABASE_URL: postgres://printflow:printflow@localhost:5432/printflow_test
+
+  stack:
+    name: Docker stack (build, smoke, browser tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GIT_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      # The exact stack a developer starts locally: Postgres + app in containers.
+      - name: Start the stack
+        run: docker compose up --build -d --wait --wait-timeout 120
+      - name: Smoke test
+        run: npm run smoke
+        env:
+          EXPECT_VERSION: ${{ github.sha }}
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests
+        run: npm run e2e
+        env:
+          CI: 'true'
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+      - name: Show container logs
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
