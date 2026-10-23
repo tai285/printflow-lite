@@ -1,0 +1,34 @@
+# Test plan
+
+## Automated layers
+
+| Layer                 | Tool / location                                               | Covers                                                                                                                                                                                                                                               | Catches                                                        |
+| --------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Unit: domain          | Vitest, `shared/*.test.ts`                                    | Worked examples; every tier edge (24/25/49/50/99/100/249/250/500/501); half-up rounding; setup only for screen/offset; banner per-unit rounding; all 25 status from/to pairs                                                                         | Formula, boundary and rounding bugs; invalid workflows         |
+| Unit: validation      | Vitest                                                        | `""`, `" "`, `"abc"`, `"1.5"`, `"1e2"`, `"-3"`, `"0"`, max+1, screen 24, offset 4, colours 0/5, unknown product, extra fields                                                                                                                        | Unsafe input, coercion pitfalls, unclear messages              |
+| API (no DB)           | Vitest + Supertest, `server/*.test.ts`                        | Health endpoint, unknown routes                                                                                                                                                                                                                      | Routing and response-shape mistakes                            |
+| Integration: API + DB | Vitest + Supertest + real Postgres, `server/**/*.int.test.ts` | Create → 201 with server total even when the client sends one; 400 field errors; list filter + search; 404 for unknown/malformed id; transition 200 + event row; skipped step → 409; stale `from` → 409; error shape; health 503 when the DB is down | Wrong status codes, SQL/transaction bugs, trusting client data |
+| Component             | Vitest + React Testing Library                                | Field error hides the price; switching product resets fields; 409 message on detail page                                                                                                                                                             | UI logic regressions                                           |
+| E2E                   | Playwright, `e2e/`                                            | Quote → save → list → advance to Done → status still correct after reload                                                                                                                                                                            | UI + API + DB + routing + build together                       |
+| Static                | `tsc -b`, oxlint, Prettier `--check`                          | Every PR                                                                                                                                                                                                                                             | Type errors and style drift                                    |
+| Build                 | `vite build`, `node server/index.ts` start                    | Every PR                                                                                                                                                                                                                                             | "Works in dev, fails in prod"                                  |
+| Deploy smoke          | `scripts/smoke.ts` in `deploy.yml`                            | `/api/health` has the expected SHA and db ok; `GET /api/orders` → 200; `GET /` → HTML. Read-only                                                                                                                                                     | Bad deploys, missing env vars, failed migrations               |
+
+Coverage is a guide, not a target.
+
+## Manual checklist
+
+Record the date and result each time it's run against the live URL.
+
+| ID  | Scenario                              | Expected                                                       | Last run |
+| --- | ------------------------------------- | -------------------------------------------------------------- | -------- |
+| M1  | Build a quote for each product        | Only relevant fields shown; breakdown matches the spec         |          |
+| M2  | Trigger each validation error         | Clear message next to the field; no price shown                |          |
+| M3  | Toggle rush                           | Rush line appears; total = subtotal + 15%                      |          |
+| M4  | Save a quote                          | Redirects to the new order; status Quote; number PF-000N       |          |
+| M5  | Search and status filter              | Results combine both; "Clear filters" on no match              |          |
+| M6  | Advance an order to Done              | One step at a time; history shows each step; no button at Done |          |
+| M7  | Reload and deep-link to `/orders/:id` | Same data shown                                                |          |
+| M8  | Advance the same order in two tabs    | Second tab shows "updated elsewhere" and refreshes             |          |
+| M9  | API unavailable                       | Error state with Retry; no blank screen                        |          |
+| M10 | 375 px width, keyboard only           | Everything reachable; visible focus; labelled inputs           |          |
