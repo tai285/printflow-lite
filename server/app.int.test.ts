@@ -93,6 +93,25 @@ describe('rate limiting', () => {
   })
 })
 
+describe('rate limiting behind a reverse proxy', () => {
+  it('limits each visitor separately using X-Forwarded-For', async () => {
+    const proxied = createTestContext({ rateLimitMax: 1, trustProxy: 1 })
+    try {
+      const send = (ip: string) =>
+        request(proxied.app)
+          .post('/api/orders')
+          .set('X-Forwarded-For', ip)
+          .send({})
+      expect((await send('203.0.113.1')).status).toBe(400)
+      expect((await send('203.0.113.1')).status).toBe(429)
+      // A different visitor still has their own allowance.
+      expect((await send('203.0.113.2')).status).toBe(400)
+    } finally {
+      await proxied.close()
+    }
+  })
+})
+
 describe('serving the web app', () => {
   const dist = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-dist-'))
   fs.writeFileSync(
@@ -119,5 +138,68 @@ describe('serving the web app', () => {
   it('serves no web app when there is no build', async () => {
     const res = await request(ctx.app).get('/')
     expect(res.status).toBe(404)
+  })
+})
+
+describe('search engine settings', () => {
+  const dist = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-seo-'))
+  fs.writeFileSync(
+    path.join(dist, 'index.html'),
+    [
+      '<html><head>',
+      '<link rel="canonical" href="__SITE_URL__/" />',
+      '<title>Shell</title>',
+      '</head></html>',
+    ].join('\n'),
+  )
+  afterAll(() => fs.rmSync(dist, { recursive: true, force: true }))
+
+  it('blocks indexing when there is no public site URL', async () => {
+    const site = createTestContext({ webDist: dist })
+    try {
+      const robots = await request(site.app).get('/robots.txt')
+      expect(robots.text).toContain('Disallow: /')
+      expect(robots.text).not.toContain('Sitemap')
+
+      const home = await request(site.app).get('/')
+      expect(home.headers['x-robots-tag']).toBe('noindex, nofollow')
+      expect(home.text).toContain('<title>Shell</title>')
+      expect(home.text).not.toContain('canonical')
+      expect(home.text).not.toContain('__SITE_URL__')
+
+      expect((await request(site.app).get('/sitemap.xml')).status).toBe(404)
+    } finally {
+      await site.close()
+    }
+  })
+
+  it('is indexable with canonical URL, robots and sitemap when a site URL is set', async () => {
+    const site = createTestContext({
+      webDist: dist,
+      siteUrl: 'https://printflow.example.org',
+    })
+    try {
+      const home = await request(site.app).get('/')
+      expect(home.headers['x-robots-tag']).toBeUndefined()
+      expect(home.text).toContain(
+        '<link rel="canonical" href="https://printflow.example.org/" />',
+      )
+
+      const robots = await request(site.app).get('/robots.txt')
+      expect(robots.text).toContain('Allow: /')
+      expect(robots.text).toContain('Disallow: /api/')
+      expect(robots.text).toContain(
+        'Sitemap: https://printflow.example.org/sitemap.xml',
+      )
+
+      const sitemap = await request(site.app).get('/sitemap.xml')
+      expect(sitemap.status).toBe(200)
+      expect(sitemap.type).toBe('application/xml')
+      expect(sitemap.text).toContain(
+        '<loc>https://printflow.example.org/</loc>',
+      )
+    } finally {
+      await site.close()
+    }
   })
 })

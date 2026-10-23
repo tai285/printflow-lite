@@ -3,7 +3,7 @@ import request from 'supertest'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { ORDER_STATUSES } from '../../shared/orderStatus.ts'
 import { orderStatusEvents, orders } from '../db/schema.ts'
-import { seedIfEmpty, seedSamples } from '../db/seed.ts'
+import { resetDemoData, seedIfEmpty, seedSamples } from '../db/seed.ts'
 import {
   createTestContext,
   validOrderBody,
@@ -379,5 +379,19 @@ describe('sample data endpoints', () => {
     expect(names((await api().get('/api/orders')).body)).toEqual([
       'Real Customer',
     ])
+  })
+})
+
+describe('demo reset', () => {
+  it('removes every order, including real ones, and reloads the samples', async () => {
+    await create({ customerName: 'Visitor Order' })
+    await seedSamples(ctx.db)
+
+    expect(await resetDemoData(ctx.db)).toBe(8)
+
+    const all = (await api().get('/api/orders')).body
+    expect(all).toHaveLength(8)
+    expect(all.every((o: { isSample: boolean }) => o.isSample)).toBe(true)
+    expect(names(all)).not.toContain('Visitor Order')
   })
 })

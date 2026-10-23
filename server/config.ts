@@ -18,6 +18,22 @@ const envSchema = z.object({
   SEED_ON_START: booleanString.default(false),
   /** Built web app to serve; skipped when the folder does not exist. */
   WEB_DIST: z.string().default('dist/web'),
+  /**
+   * Public address of the site (for example https://example.org). When set the
+   * site is indexable and gets canonical URLs and a sitemap; when unset every
+   * response says noindex, which suits temporary tunnel URLs.
+   */
+  SITE_URL: z
+    .string()
+    .optional()
+    .transform((value) => value?.trim().replace(/\/+$/, '') || undefined),
+  /** Wipe all orders and reload the sample orders every N minutes (0 = never). */
+  DEMO_RESET_MINUTES: z.coerce.number().int().min(0).default(0),
+  /**
+   * Number of reverse proxies in front of the app (for example 1 behind a
+   * Cloudflare tunnel). Needed so rate limiting sees each visitor's real IP.
+   */
+  TRUST_PROXY: z.coerce.number().int().min(0).default(0),
   /** Max write requests per IP per minute. */
   RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(120),
 })

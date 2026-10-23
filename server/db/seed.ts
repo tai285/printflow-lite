@@ -155,6 +155,12 @@ export async function removeSamples(db: Db): Promise<number> {
   return removed.length
 }
 
+/** Deletes every order and loads a fresh set of sample orders (public demo mode). */
+export async function resetDemoData(db: Db): Promise<number> {
+  await db.delete(orders)
+  return seedSamples(db)
+}
+
 /** Seeds only when there are no orders at all. Returns how many were inserted. */
 export async function seedIfEmpty(db: Db): Promise<number> {
   if ((await countOrders(db)) > 0) return 0

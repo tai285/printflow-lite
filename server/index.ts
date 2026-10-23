@@ -2,7 +2,7 @@ import { createApp } from './app.ts'
 import { loadConfig } from './config.ts'
 import { createDb } from './db/client.ts'
 import { runMigrations } from './db/migrate.ts'
-import { seedIfEmpty } from './db/seed.ts'
+import { resetDemoData, seedIfEmpty } from './db/seed.ts'
 
 const config = loadConfig()
 const { db, close } = createDb(config.DATABASE_URL)
@@ -21,7 +21,19 @@ const app = createApp({
   version: config.GIT_SHA,
   webDist: config.WEB_DIST,
   rateLimitMax: config.RATE_LIMIT_MAX,
+  siteUrl: config.SITE_URL,
+  trustProxy: config.TRUST_PROXY,
 })
+
+// Public demo: nobody is logged in, so periodically wipe whatever visitors created.
+if (config.DEMO_RESET_MINUTES > 0) {
+  setInterval(() => {
+    resetDemoData(db)
+      .then((count) => console.log(`Demo reset: ${count} sample orders`))
+      .catch((error) => console.error('Demo reset failed:', error))
+  }, config.DEMO_RESET_MINUTES * 60_000).unref()
+  console.log(`Demo reset every ${config.DEMO_RESET_MINUTES} minutes`)
+}
 
 const server = app.listen(config.PORT, () => {
   console.log(`API listening on http://localhost:${config.PORT}`)
