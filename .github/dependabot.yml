@@ -8,6 +8,12 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Stay on the Node 24 LTS line and the TypeScript version the tooling supports.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -16,3 +22,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Odd-numbered Node releases are not long-term-support.
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
