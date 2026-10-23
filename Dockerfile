@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- deps: all dependencies (needed to build the web app) ----
-FROM node:24-alpine AS deps
+FROM node:25-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -14,7 +14,7 @@ COPY shared ./shared
 RUN npx vite build
 
 # ---- runtime: production deps + server source + built web app ----
-FROM node:24-alpine AS runtime
+FROM node:25-alpine AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 COPY package.json package-lock.json ./
