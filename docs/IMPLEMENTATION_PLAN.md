@@ -9,41 +9,41 @@ The whole system is built first (backend, then frontend, then containers and pip
 - [x] Vitest + Supertest; oxlint; Prettier
 - [x] `ci.yml` v1 (lint, format, typecheck, test, build)
 - [x] Docs; pricing rules approved
-- [ ] First commit, public GitHub repo, CI green
+- [x] First commit, public GitHub repo
 
 ## Phase 2: Shared domain (test-first)
 
-- [ ] `money.ts`, `catalogue.ts`, `pricing.ts` (all four worked examples)
-- [ ] `schemas.ts` (Zod) + business-rule validation
-- [ ] `orderStatus.ts`
-- [ ] Tier-boundary and validation tests
+- [x] `money.ts`, `catalogue.ts`, `pricing.ts` (all four worked examples)
+- [x] `schemas.ts` (Zod) + business-rule validation
+- [x] `orderStatus.ts`
+- [x] Tier-boundary and validation tests
 
 ## Phase 3: Database and API
 
-- [ ] Postgres via `compose.yaml`; Drizzle schema, migration, seed
-- [ ] Config via Zod; error handler; validation middleware
-- [ ] Orders: create, list, detail, transition (optimistic concurrency)
-- [ ] Integration tests against real Postgres; CI `integration` job
-- [ ] Helmet, rate limiting
+- [x] Postgres via `compose.yaml`; Drizzle schema, migration, seed
+- [x] Config via Zod; error handler; validation middleware
+- [x] Orders: create, list, detail, transition (optimistic concurrency)
+- [x] Integration tests against real Postgres; CI `integration` job
+- [x] Helmet, rate limiting
 
 ## Phase 4: Frontend
 
-- [ ] Router, TanStack Query, typed API client
-- [ ] Quote builder with live preview and server field errors
-- [ ] Orders list (search/filter in URL), order detail, advance + 409 handling
-- [ ] Loading, error and empty states; responsive layout; accessibility
-- [ ] Printable quote
-- [ ] Component tests
+- [x] Router, TanStack Query, typed API client
+- [x] Quote builder with live preview and server field errors
+- [x] Orders list (search/filter in URL), order detail, advance + 409 handling
+- [x] Loading, error and empty states; responsive layout; accessibility
+- [x] Printable quote
+- [x] Component tests
 
 ## Phase 5: Containers and CI
 
-- [ ] Multi-stage `Dockerfile`; `compose.yaml` with app + Postgres
-- [ ] CI builds the image; Playwright E2E job
-- [ ] Smoke script; CI `stack` job boots the Compose stack and smoke-tests it
-- [ ] Dependabot
+- [x] Multi-stage `Dockerfile`; `compose.yaml` with app + Postgres
+- [x] CI builds the image; Playwright E2E job
+- [x] Smoke script; CI `stack` job boots the Compose stack and smoke-tests it
+- [x] Dependabot
 
 ## Phase 6: Release
 
-- [ ] README with screenshots, API reference, demo script
-- [ ] Final regression on the local Docker stack
+- [x] README with screenshots, API reference, demo script
+- [x] Final regression on the local Docker stack
 - [ ] Study / interview preparation (owner)
