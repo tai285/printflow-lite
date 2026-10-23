@@ -28,7 +28,7 @@ describe('worked examples from the spec', () => {
     const q = calculateQuote(screen({ quantity: 50, colours: 2 }))
     expect(q.lines.map((l) => [l.label, l.amountSen])).toEqual([
       ['Garments', 60000],
-      ['Screen print printing', 20000],
+      ['Printing (Screen print)', 20000],
       ['Screen setup', 4000],
     ])
     expect(q.subtotalSen).toBe(84000)

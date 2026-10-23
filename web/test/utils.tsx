@@ -57,7 +57,7 @@ export const sampleOrder = (over: Record<string, unknown> = {}) => ({
   breakdown: {
     lines: [
       { label: 'Garments', detail: '50 × RM 12.00', amountSen: 60000 },
-      { label: 'Screen print printing', amountSen: 20000 },
+      { label: 'Printing (Screen print)', amountSen: 20000 },
       { label: 'Screen setup', amountSen: 4000 },
     ],
     subtotalSen: 84000,

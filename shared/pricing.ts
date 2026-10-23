@@ -39,7 +39,7 @@ function priceTshirt(input: TshirtInput): LineItem[] {
   const method = TSHIRT.methods[input.method]
   const unit = tierUnitPrice(method.tiers, quantity)
   lines.push({
-    label: `${method.label} printing`,
+    label: `Printing (${method.label})`,
     detail: `${quantity} × ${locations} location${locations > 1 ? 's' : ''} × ${formatRM(unit)}`,
     amountSen: quantity * locations * unit,
   })
