@@ -9,31 +9,43 @@ const out = new URL('../docs/screenshots/', import.meta.url).pathname.replace(
 )
 
 const browser = await chromium.launch()
-const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
 
 // Start from a known set of sample orders.
-await page.request.post(`${base}/api/samples`)
+const setup = await browser.newPage()
+await setup.request.post(`${base}/api/samples`)
+await setup.close()
 
-await page.goto(`${base}/orders`)
-await page.getByText('Aisyah Rahman').waitFor()
-await page.screenshot({ path: `${out}orders.png` })
+for (const theme of ['light', 'dark']) {
+  const suffix = theme === 'dark' ? '-dark' : ''
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 800 },
+    colorScheme: theme,
+  })
+  const page = await context.newPage()
 
-await page.goto(`${base}/quotes/new`)
-await page.getByLabel('Customer name').fill('Aisyah Rahman')
-await page.getByLabel('Rush order (+15%)').check()
-await page.getByRole('row', { name: /^Total/ }).waitFor()
-await page.screenshot({ path: `${out}new-quote.png` })
+  await page.goto(`${base}/orders`)
+  await page.getByText('Aisyah Rahman').waitFor()
+  await page.screenshot({ path: `${out}orders${suffix}.png` })
 
-await page.goto(`${base}/orders?q=priya`)
-await page.getByRole('link', { name: /Priya Nair/ }).click()
-await page.getByRole('heading', { level: 1 }).waitFor()
-await page.getByText('History').waitFor()
-await page.screenshot({ path: `${out}order-detail.png` })
+  await page.goto(`${base}/quotes/new`)
+  await page.getByLabel('Customer name').fill('Aisyah Rahman')
+  await page.getByLabel('Rush order (+15%)').check()
+  await page.getByRole('row', { name: /^Total/ }).waitFor()
+  await page.screenshot({ path: `${out}new-quote${suffix}.png` })
 
-await page.setViewportSize({ width: 390, height: 800 })
-await page.goto(`${base}/orders`)
-await page.getByText('Aisyah Rahman').waitFor()
-await page.screenshot({ path: `${out}orders-mobile.png` })
+  await page.goto(`${base}/orders?q=priya`)
+  await page.getByRole('link', { name: /Priya Nair/ }).click()
+  await page.getByRole('heading', { level: 1 }).waitFor()
+  await page.getByText('History').waitFor()
+  await page.screenshot({ path: `${out}order-detail${suffix}.png` })
+
+  await page.setViewportSize({ width: 390, height: 800 })
+  await page.goto(`${base}/orders`)
+  await page.getByText('Aisyah Rahman').waitFor()
+  await page.screenshot({ path: `${out}orders-mobile${suffix}.png` })
+
+  await context.close()
+}
 
 await browser.close()
 console.log('Screenshots written to docs/screenshots')

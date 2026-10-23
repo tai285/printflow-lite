@@ -8,6 +8,8 @@ The whole system (React UI, Express API, PostgreSQL) starts with one command and
 
 ![Orders list](docs/screenshots/orders.png)
 
+![Orders list in dark mode](docs/screenshots/orders-dark.png)
+
 |          New quote with live price           |                    Order detail                    |
 | :------------------------------------------: | :------------------------------------------------: |
 | ![New quote](docs/screenshots/new-quote.png) | ![Order detail](docs/screenshots/order-detail.png) |
@@ -43,6 +45,7 @@ No account, domain or VPS is needed: the Docker stack runs on your machine and a
 - **Orders**: list with search (number, customer, product) and status filter kept in the URL, detail page with price snapshot and status history, forward-only workflow.
 - **Safe concurrency**: two people advancing the same order cannot both succeed. The loser gets a `409` and the UI explains it and refreshes.
 - **Validation everywhere**: one set of Zod schemas and business rules used by both the form and the API; field errors are shown next to their inputs.
+- **Dark mode**: a switch in the header, remembered per browser, following the system setting until you choose. Both themes are scanned for WCAG AA contrast in CI.
 - **Printable quote**, responsive layout, keyboard and screen-reader friendly (checked with axe in CI).
 - **Demo helpers**: load or remove clearly labelled sample orders from the UI.
 

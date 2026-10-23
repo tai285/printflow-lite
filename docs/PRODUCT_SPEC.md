@@ -26,26 +26,27 @@
 
 ## User stories
 
-| ID    | Story                  | Acceptance criteria                                                                                                                                                             | Pri |
-| ----- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
-| SH-1  | Deterministic pricing  | `calculateQuote(input)` is pure, returns an itemised breakdown in sen, and matches the worked examples below                                                                    | P0  |
-| SH-2  | Shared validation      | Zod `quoteInputSchema` + `checkBusinessRules` return field-keyed messages, never throw, and run on both server and web                                                          | P0  |
-| SH-3  | Status rules           | `canTransition(from, to)` allows only the next step; `nextStatus('done')` is `null`                                                                                             | P0  |
-| DB-1  | Schema and migrations  | `orders` and `order_status_events` are created by a migration; `npm run db:migrate` is repeatable                                                                               | P0  |
-| DB-2  | Seed data              | `npm run db:seed` inserts about 8 fictional orders marked `is_sample`, across all statuses                                                                                      | P0  |
-| API-1 | Health                 | `GET /api/health` → 200 `{status, db, version}`; 503 if the database is unreachable                                                                                             | P0  |
-| API-2 | Create order           | `POST /api/orders` → 201 with `PF-000N`, status `quote`, server-computed breakdown. Invalid body → 400 `VALIDATION_ERROR` with `fields`. A client total is ignored              | P0  |
-| API-3 | List orders            | `GET /api/orders?status=&q=` → newest first, case-insensitive search on number, customer and product; invalid status → 400                                                      | P0  |
-| API-4 | Order detail           | `GET /api/orders/:id` → order + history; unknown or malformed id → 404                                                                                                          | P0  |
-| API-5 | Transition             | `POST /api/orders/:id/transitions {from, to}` → 200 + event row in one transaction; illegal move or stale `from` → 409                                                          | P0  |
-| API-6 | Consistent errors      | `{error:{code, message, fields?}}`; no stack traces in production; 10 kB body limit                                                                                             | P0  |
-| CI-1  | PR checks              | Lint, format, typecheck, unit + integration tests, build on every PR; required to merge                                                                                         | P0  |
-| DK-1  | One-command stack      | `docker compose up --build` starts Postgres + app, applies migrations, seeds sample data on request, serves UI and API on http://localhost:3000; CI boots it and smoke-tests it | P0  |
-| UI-1  | Quote builder          | Product-specific fields, live itemised preview, client errors and server 400 `fields` shown next to their inputs                                                                | P0  |
-| UI-2  | Orders list            | Search and filter kept in the URL; loading, error (retry) and empty states                                                                                                      | P0  |
-| UI-3  | Order detail + advance | Snapshot breakdown, history, single "Move to X" button; a 409 refetches and explains the conflict                                                                               | P0  |
-| E2E-1 | Happy-path E2E         | Playwright: quote → save → advance to Done → check the list, in CI                                                                                                              | P1  |
-| PQ-1  | Print quote            | Print CSS: shop header, customer, line items, total, "illustrative pricing" note                                                                                                | P1  |
+| ID    | Story                  | Acceptance criteria                                                                                                                                                                      | Pri |
+| ----- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
+| SH-1  | Deterministic pricing  | `calculateQuote(input)` is pure, returns an itemised breakdown in sen, and matches the worked examples below                                                                             | P0  |
+| SH-2  | Shared validation      | Zod `quoteInputSchema` + `checkBusinessRules` return field-keyed messages, never throw, and run on both server and web                                                                   | P0  |
+| SH-3  | Status rules           | `canTransition(from, to)` allows only the next step; `nextStatus('done')` is `null`                                                                                                      | P0  |
+| DB-1  | Schema and migrations  | `orders` and `order_status_events` are created by a migration; `npm run db:migrate` is repeatable                                                                                        | P0  |
+| DB-2  | Seed data              | `npm run db:seed` inserts about 8 fictional orders marked `is_sample`, across all statuses                                                                                               | P0  |
+| API-1 | Health                 | `GET /api/health` → 200 `{status, db, version}`; 503 if the database is unreachable                                                                                                      | P0  |
+| API-2 | Create order           | `POST /api/orders` → 201 with `PF-000N`, status `quote`, server-computed breakdown. Invalid body → 400 `VALIDATION_ERROR` with `fields`. A client total is ignored                       | P0  |
+| API-3 | List orders            | `GET /api/orders?status=&q=` → newest first, case-insensitive search on number, customer and product; invalid status → 400                                                               | P0  |
+| API-4 | Order detail           | `GET /api/orders/:id` → order + history; unknown or malformed id → 404                                                                                                                   | P0  |
+| API-5 | Transition             | `POST /api/orders/:id/transitions {from, to}` → 200 + event row in one transaction; illegal move or stale `from` → 409                                                                   | P0  |
+| API-6 | Consistent errors      | `{error:{code, message, fields?}}`; no stack traces in production; 10 kB body limit                                                                                                      | P0  |
+| CI-1  | PR checks              | Lint, format, typecheck, unit + integration tests, build on every PR; required to merge                                                                                                  | P0  |
+| DK-1  | One-command stack      | `docker compose up --build` starts Postgres + app, applies migrations, seeds sample data on request, serves UI and API on http://localhost:3000; CI boots it and smoke-tests it          | P0  |
+| UI-1  | Quote builder          | Product-specific fields, live itemised preview, client errors and server 400 `fields` shown next to their inputs                                                                         | P0  |
+| UI-2  | Orders list            | Search and filter kept in the URL; loading, error (retry) and empty states                                                                                                               | P0  |
+| UI-3  | Order detail + advance | Snapshot breakdown, history, single "Move to X" button; a 409 refetches and explains the conflict                                                                                        | P0  |
+| E2E-1 | Happy-path E2E         | Playwright: quote → save → advance to Done → check the list, in CI                                                                                                                       | P1  |
+| UX-1  | Dark mode              | Header switch toggles light/dark; choice is remembered, defaults to the system setting, applies before first paint; all pages meet WCAG AA contrast in both themes; printing stays light | P1  |
+| PQ-1  | Print quote            | Print CSS: shop header, customer, line items, total, "illustrative pricing" note                                                                                                         | P1  |
 
 ## Pricing rules (illustrative)
 
