@@ -24,7 +24,10 @@
     "db:migrate": "node --env-file-if-exists=.env server/db/migrate.ts",
     "db:seed": "node --env-file-if-exists=.env server/db/seed.ts",
     "smoke": "node scripts/smoke.mjs",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "public:up": "docker compose -f compose.yaml -f compose.public.yaml up --build -d --wait && node scripts/public-url.mjs",
+    "public:url": "node scripts/public-url.mjs",
+    "public:down": "docker compose -f compose.yaml -f compose.public.yaml down"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.5",
