@@ -32,3 +32,6 @@ e2e/.auth
 
 # Remembers the last good production build (written by npm run deploy)
 .deploy-state.json
+
+# Output of the scheduled auto-deploy task
+deploy.log

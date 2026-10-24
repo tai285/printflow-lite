@@ -48,13 +48,49 @@ The script pulls the image, runs `docker compose up --wait` (waits for the healt
 | Cookies                                | plain                                         | `Secure`, with HSTS (`COOKIE_SECURE=true`)                        |
 | Container                              | default                                       | read-only filesystem, all capabilities dropped, no-new-privileges |
 
+### Automatic deploys (Windows)
+
+Merging to `main` already publishes a new image. Auto-deploy makes this machine pick it up on its own. It is a **pull** model: a scheduled task on the server asks "is there a newer image?" every 15 minutes. Nothing from the internet can reach the server, and GitHub holds no keys to it.
+
+```
+every 15 min:  Task Scheduler ─► node scripts/deploy.mjs --auto ─► deploy.log
+                                   │ pull ghcr.io/…:latest
+                                   ├─ same image as the running one?  → stop ("Already up to date")
+                                   ├─ this exact image failed before? → stop (no retry loop)
+                                   └─ otherwise: restart, wait for health checks, verify the build
+                                        ├─ healthy → record it as the last good build
+                                        └─ unhealthy → restore the last good build, remember the bad image
+```
+
+Learn it in this order, each step safe to repeat:
+
+1. **Look without touching:** `npm run deploy -- --check` pulls the newest image and tells you whether it differs from what is running. It never restarts anything.
+2. **Deploy by hand:** `npm run deploy`. Read the output; this is what the task does.
+3. **Read the state file:** `.deploy-state.json` holds the last good build (and a failed image, if any). `docker compose --env-file .env.production -f compose.prod.yaml ps` shows what is running.
+4. **Automate it:**
+   ```powershell
+   powershell -File scripts\auto-deploy-task.ps1 install   # create the task
+   powershell -File scripts\auto-deploy-task.ps1 status    # last run, next run, last log lines
+   powershell -File scripts\auto-deploy-task.ps1 run       # run it once now
+   powershell -File scripts\auto-deploy-task.ps1 remove    # turn it off again
+   ```
+   You can also see it in Windows: Task Scheduler → Task Scheduler Library → "PrintFlowLite Deploy".
+
+Things to know:
+
+- It only runs while you are signed in to Windows, the machine is awake, and Docker Desktop is running. Missed runs are made up when the machine wakes.
+- `deploy.log` grows by a few lines per run; delete it any time.
+- The script itself is not auto-updated. After you change `scripts/deploy.mjs` in git, `git pull` on this machine for the change to take effect.
+- A new image is deployed only if every CI check passed on `main`, because the publish job depends on them. A bad build can still reach production if the tests did not catch it; the rollback above limits the damage but does not undo database migrations, which is a real limit of this setup.
+- To pause deploys without deleting anything, disable the task in Task Scheduler.
+
 ### Stable address (named tunnel)
 
 A quick tunnel's address changes whenever the tunnel container is recreated, which is fine for testing but not for customers. For a stable address you need a hostname on a Cloudflare-managed domain: create a tunnel in Cloudflare Zero Trust, point its public hostname at `http://app:3000`, then set `COMPOSE_PROFILES=named`, `TUNNEL_TOKEN=...` and `SITE_URL=https://your-hostname` in `.env.production` and run `npm run deploy`. The named profile is defined and validated in `compose.prod.yaml` but has not been run against a real Cloudflare account.
 
 ### What is verified, and what is not
 
-Verified locally: the production compose file under the hardened settings, deploy, upgrade and rollback with locally built images, no demo endpoints, `Secure` cookies and HSTS. **Not verified until it runs:** the GitHub Actions publish job, pulling from GHCR, either tunnel with this compose file, and the first real deploy.
+Verified locally: the production compose file under the hardened settings, deploy, upgrade and rollback with locally built images, the auto-deploy script (no-op when current, check-only, apply, rollback, no retry of a failed build), no demo endpoints, `Secure` cookies and HSTS. **Not verified until it runs:** the GitHub Actions publish job, pulling from GHCR, either tunnel with this compose file, and the first real deploy.
 
 ---
 

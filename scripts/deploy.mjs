@@ -2,8 +2,12 @@
 // it came up healthy. If the new version fails, the last good one is restored.
 //
 //   npm run deploy                 newest image (the "latest" tag)
+//   npm run deploy -- --check      only report whether an update exists (changes nothing)
 //   npm run deploy -- <git-sha>    a specific build; use it to roll back
+//   npm run deploy -- --auto       for the scheduled task: same as deploy, but it
+//                                  will not retry a build that already failed
 //
+// Nothing is restarted when the newest image is already the one running.
 // Needs .env.production (see .env.production.example). SKIP_PULL=1 uses images
 // already on this machine (for testing with a locally built image).
 import { execFileSync, spawnSync } from 'node:child_process'
@@ -20,7 +24,13 @@ if (!fs.existsSync(ENV_FILE)) {
   process.exit(1)
 }
 
-const tag = process.argv[2] ?? 'latest'
+const args = process.argv.slice(2)
+const auto = args.includes('--auto')
+const checkOnly = args.includes('--check')
+const tag = args.find((arg) => !arg.startsWith('--')) ?? 'latest'
+console.log(
+  `[${new Date().toISOString()}] deploy tag=${tag}${auto ? ' (auto)' : ''}${checkOnly ? ' (check only)' : ''}`,
+)
 if (!/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$/.test(tag)) {
   console.error(`"${tag}" is not a valid image tag`)
   process.exit(1)
@@ -32,6 +42,38 @@ const readState = () => {
   } catch {
     return {}
   }
+}
+
+const writeState = (state) =>
+  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2))
+
+/** Output of a docker command, or undefined if it fails. */
+function docker(args, imageTag = tag) {
+  try {
+    return execFileSync('docker', args, {
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      env: { ...process.env, PF_TAG: imageTag },
+    }).trim()
+  } catch {
+    return undefined
+  }
+}
+
+/** The app image for a tag, as written in compose.prod.yaml. */
+function appImageName() {
+  const images = docker([...compose, 'config', '--images']) ?? ''
+  return images
+    .split('\n')
+    .find((image) => image && !/^(postgres|cloudflare)/.test(image))
+}
+
+/** ID of the image the running app container was started from. */
+function runningImageId() {
+  const container = docker([...compose, 'ps', '-q', 'app'])
+  return container
+    ? docker(['inspect', '-f', '{{.Image}}', container])
+    : undefined
 }
 
 /** Runs docker compose with the given image tag; returns true on success. */
@@ -79,11 +121,39 @@ function printPublicUrl() {
   }
 }
 
-const previous = readState().lastGood
+const state = readState()
+const previous = state.lastGood
 
-console.log(`Deploying image tag "${tag}"…`)
+console.log(`Looking for image tag "${tag}"…`)
 let ok = true
 if (!process.env.SKIP_PULL) ok = run(['pull', 'app'], tag)
+
+// Compare what we just pulled with what is running, before touching anything.
+const image = appImageName()
+const newId = image
+  ? docker(['image', 'inspect', '-f', '{{.Id}}', image])
+  : undefined
+const currentVersion = runningVersion()
+if (ok && newId && newId === runningImageId() && currentVersion) {
+  console.log(`Already up to date (build ${currentVersion}). Nothing to do.`)
+  process.exit(0)
+}
+if (checkOnly) {
+  console.log(
+    ok
+      ? `An update is available (running ${currentVersion ?? 'nothing'}). Run "npm run deploy" to apply it.`
+      : 'Could not fetch the image; see the messages above.',
+  )
+  process.exit(ok ? 0 : 1)
+}
+if (auto && newId && state.failedImage === newId) {
+  console.log(
+    'This build already failed to start here; skipping until a newer one is published.',
+  )
+  process.exit(0)
+}
+
+console.log(`Deploying image tag "${tag}"…`)
 // `--wait` returns only when every service is healthy (the image has a health check).
 ok =
   ok &&
@@ -110,9 +180,11 @@ if (!ok || !version || !versionMatches) {
   } else {
     console.error('No earlier good build is recorded to roll back to.')
   }
+  // Remember the bad image so the scheduled task does not retry it every run.
+  writeState({ ...state, failedImage: newId })
   process.exit(1)
 }
 
-fs.writeFileSync(STATE_FILE, JSON.stringify({ lastGood: version }, null, 2))
+writeState({ lastGood: version })
 console.log(`\nDeployed build ${version}.`)
 printPublicUrl()
