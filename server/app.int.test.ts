@@ -2,12 +2,16 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import request from 'supertest'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createApp } from './app.ts'
 import { createDb } from './db/client.ts'
 import { createTestContext } from './test/helpers.ts'
 
 const ctx = createTestContext()
+let admin: Awaited<ReturnType<typeof ctx.signIn>>['agent']
+beforeAll(async () => {
+  admin = (await ctx.signIn('admin')).agent
+})
 afterAll(() => ctx.close())
 
 describe('GET /api/health', () => {
@@ -41,7 +45,7 @@ describe('error handling', () => {
   })
 
   it('returns 400 for malformed JSON', async () => {
-    const res = await request(ctx.app)
+    const res = await admin
       .post('/api/orders')
       .set('Content-Type', 'application/json')
       .send('{bad')
@@ -51,7 +55,7 @@ describe('error handling', () => {
   })
 
   it('returns 413 for bodies over 10 kB', async () => {
-    const res = await request(ctx.app)
+    const res = await admin
       .post('/api/orders')
       .send({ customerName: 'x'.repeat(20_000) })
 
@@ -67,7 +71,7 @@ describe('error handling', () => {
   })
 
   it('rejects an empty body with field errors', async () => {
-    const res = await request(ctx.app).post('/api/orders').send({})
+    const res = await admin.post('/api/orders').send({})
 
     expect(res.status).toBe(400)
     expect(res.body.error.fields.customerName).toBeDefined()
@@ -79,7 +83,8 @@ describe('rate limiting', () => {
   it('limits write requests per IP with a JSON 429', async () => {
     const limited = createTestContext({ rateLimitMax: 2 })
     try {
-      const send = () => request(limited.app).post('/api/orders').send({})
+      const { agent } = await limited.signIn('admin')
+      const send = () => agent.post('/api/orders').send({})
       expect((await send()).status).toBe(400)
       expect((await send()).status).toBe(400)
       const res = await send()
@@ -97,11 +102,9 @@ describe('rate limiting behind a reverse proxy', () => {
   it('limits each visitor separately using X-Forwarded-For', async () => {
     const proxied = createTestContext({ rateLimitMax: 1, trustProxy: 1 })
     try {
+      const { agent } = await proxied.signIn('admin')
       const send = (ip: string) =>
-        request(proxied.app)
-          .post('/api/orders')
-          .set('X-Forwarded-For', ip)
-          .send({})
+        agent.post('/api/orders').set('X-Forwarded-For', ip).send({})
       expect((await send('203.0.113.1')).status).toBe(400)
       expect((await send('203.0.113.1')).status).toBe(429)
       // A different visitor still has their own allowance.

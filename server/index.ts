@@ -23,6 +23,9 @@ const app = createApp({
   rateLimitMax: config.RATE_LIMIT_MAX,
   siteUrl: config.SITE_URL,
   trustProxy: config.TRUST_PROXY,
+  authRateLimitMax: config.AUTH_RATE_LIMIT_MAX,
+  secureCookies: config.COOKIE_SECURE,
+  enableDemo: config.ENABLE_DEMO,
 })
 
 // Public demo: nobody is logged in, so periodically wipe whatever visitors created.

@@ -22,6 +22,7 @@
     "test:all": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env server/db/migrate.ts",
+    "user:create": "node --env-file-if-exists=.env server/auth/create-user.ts",
     "db:seed": "node --env-file-if-exists=.env server/db/seed.ts",
     "smoke": "node scripts/smoke.mjs",
     "e2e": "playwright test",

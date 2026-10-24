@@ -1,5 +1,7 @@
 import { Link, Route, Routes } from 'react-router'
+import AuthPage from './pages/AuthPage.tsx'
 import Layout from './components/Layout.tsx'
+import RequireAuth from './components/RequireAuth.tsx'
 import { EmptyState, primaryButton } from './components/ui.tsx'
 import HomePage from './pages/HomePage.tsx'
 import NewQuotePage from './pages/NewQuotePage.tsx'
@@ -11,9 +13,13 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
-        <Route path="orders" element={<OrdersPage />} />
-        <Route path="orders/:id" element={<OrderDetailPage />} />
-        <Route path="quotes/new" element={<NewQuotePage />} />
+        <Route path="login" element={<AuthPage mode="login" />} />
+        <Route path="register" element={<AuthPage mode="register" />} />
+        <Route element={<RequireAuth />}>
+          <Route path="orders" element={<OrdersPage />} />
+          <Route path="orders/:id" element={<OrderDetailPage />} />
+          <Route path="quotes/new" element={<NewQuotePage />} />
+        </Route>
         <Route
           path="*"
           element={

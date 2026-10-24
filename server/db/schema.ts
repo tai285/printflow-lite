@@ -11,10 +11,42 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core'
+import { USER_ROLES } from '../../shared/roles.ts'
 import { ORDER_STATUSES } from '../../shared/orderStatus.ts'
 import type { QuoteBreakdown, QuoteInput } from '../../shared/quote.ts'
 
 export const orderStatus = pgEnum('order_status', ORDER_STATUSES)
+
+export const userRole = pgEnum('user_role', USER_ROLES)
+
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  /** Stored lowercase so lookups are case-insensitive. */
+  email: text('email').notNull().unique(),
+  name: text('name').notNull(),
+  /** scrypt hash in the form "scrypt$salt$hash"; never the password itself. */
+  passwordHash: text('password_hash').notNull(),
+  role: userRole('role').notNull().default('customer'),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
+export const sessions = pgTable(
+  'sessions',
+  {
+    /** SHA-256 of the cookie token, so a leaked table cannot be replayed. */
+    tokenHash: text('token_hash').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index('sessions_user_idx').on(table.userId)],
+)
 
 export const orders = pgTable(
   'orders',
@@ -38,6 +70,10 @@ export const orders = pgTable(
     pricingVersion: integer('pricing_version').notNull(),
     status: orderStatus('status').notNull().default('quote'),
     isSample: boolean('is_sample').notNull().default(false),
+    /** Who the order belongs to; null for sample and legacy orders (staff only). */
+    ownerId: uuid('owner_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -48,6 +84,7 @@ export const orders = pgTable(
   (table) => [
     index('orders_status_idx').on(table.status),
     index('orders_created_at_idx').on(table.createdAt),
+    index('orders_owner_idx').on(table.ownerId),
   ],
 )
 

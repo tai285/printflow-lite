@@ -5,6 +5,9 @@ import { rateLimit } from 'express-rate-limit'
 import helmet from 'helmet'
 import { sql } from 'drizzle-orm'
 import type { Db } from './db/client.ts'
+import { authRouter } from './auth/routes.ts'
+import { loadUser } from './auth/middleware.ts'
+import { csrfProtection } from './http/csrf.ts'
 import { apiNotFound, errorHandler } from './http/errors.ts'
 import { ordersRouter } from './orders/routes.ts'
 import { samplesRouter } from './samples/routes.ts'
@@ -21,6 +24,12 @@ export type AppOptions = {
   siteUrl?: string
   /** Number of trusted reverse proxies in front of the app (0 = none). */
   trustProxy?: number
+  /** Max login/register attempts per IP per minute. */
+  authRateLimitMax?: number
+  /** Site is served over HTTPS: Secure cookies and upgrade-insecure-requests. */
+  secureCookies?: boolean
+  /** Mounts /api/samples (admin only). Off unless this is a demo. */
+  enableDemo?: boolean
 }
 
 /**
@@ -34,6 +43,9 @@ export function createApp({
   rateLimitMax = 120,
   siteUrl,
   trustProxy = 0,
+  authRateLimitMax = 10,
+  secureCookies = false,
+  enableDemo = false,
 }: AppOptions) {
   const app = express()
 
@@ -41,9 +53,9 @@ export function createApp({
   if (trustProxy > 0) app.set('trust proxy', trustProxy)
   app.use(
     helmet({
-      // Plain http://localhost must keep working.
+      // Plain http://localhost must keep working, so only upgrade on HTTPS.
       contentSecurityPolicy: {
-        directives: { upgradeInsecureRequests: null },
+        directives: secureCookies ? {} : { upgradeInsecureRequests: null },
       },
     }),
   )
@@ -83,6 +95,21 @@ export function createApp({
     },
   })
 
+  const authLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: authRateLimitMax,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: {
+          code: 'RATE_LIMITED',
+          message: 'Too many attempts. Try again in a minute.',
+        },
+      })
+    },
+  })
+
   app.get('/api/health', async (_req, res) => {
     try {
       await db.execute(sql`select 1`)
@@ -92,8 +119,20 @@ export function createApp({
     }
   })
 
+  // After /api/health so a database outage still reports 503 there.
+  app.use('/api', csrfProtection, loadUser(db))
+
+  app.use(
+    '/api/auth',
+    authRouter({
+      db,
+      authLimiter,
+      secureCookies,
+      demoEnabled: enableDemo,
+    }),
+  )
   app.use('/api/orders', ordersRouter(db, writeLimiter))
-  app.use('/api/samples', samplesRouter(db, writeLimiter))
+  if (enableDemo) app.use('/api/samples', samplesRouter(db, writeLimiter))
   app.use('/api', apiNotFound)
 
   if (webDist && fs.existsSync(path.join(webDist, 'index.html'))) {

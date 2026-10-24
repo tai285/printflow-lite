@@ -20,19 +20,32 @@ export class ApiError extends Error {
   }
 }
 
+let onUnauthorized: (() => void) | undefined
+
+/** Called when a non-auth request comes back 401 (session expired or ended elsewhere). */
+export function setUnauthorizedHandler(handler: (() => void) | undefined) {
+  onUnauthorized = handler
+}
+
 /** Typed fetch wrapper: sends/receives JSON and turns error bodies into ApiError. */
 export async function api<T>(
   path: string,
   options: { method?: string; body?: unknown } = {},
 ): Promise<T> {
+  const method = options.method ?? 'GET'
   let response: Response
   try {
     response = await fetch(path, {
-      method: options.method ?? 'GET',
-      headers:
-        options.body === undefined
-          ? undefined
-          : { 'Content-Type': 'application/json' },
+      method,
+      // The session cookie is sent automatically (same origin). Every write
+      // also carries a custom header, which the server requires (CSRF defence).
+      credentials: 'same-origin',
+      headers: {
+        ...(options.body === undefined
+          ? {}
+          : { 'Content-Type': 'application/json' }),
+        ...(method === 'GET' ? {} : { 'X-Requested-With': 'printflow' }),
+      },
       body:
         options.body === undefined ? undefined : JSON.stringify(options.body),
     })
@@ -53,6 +66,10 @@ export async function api<T>(
   }
 
   if (!response.ok) {
+    // /api/auth/* answers 401 for bad credentials; the login form shows that itself.
+    if (response.status === 401 && !path.startsWith('/api/auth/')) {
+      onUnauthorized?.()
+    }
     const error = (data as Partial<ApiErrorBody> | undefined)?.error
     throw new ApiError(
       response.status,

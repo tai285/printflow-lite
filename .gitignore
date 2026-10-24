@@ -25,3 +25,6 @@ coverage
 # Playwright (Day 8)
 test-results
 playwright-report
+
+# Saved Playwright sign-in sessions (contain live session cookies)
+e2e/.auth

@@ -1,19 +1,25 @@
 import { eq } from 'drizzle-orm'
-import request from 'supertest'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { ORDER_STATUSES } from '../../shared/orderStatus.ts'
 import { orderStatusEvents, orders } from '../db/schema.ts'
 import { resetDemoData, seedIfEmpty, seedSamples } from '../db/seed.ts'
 import {
   createTestContext,
+  type SignedIn,
   validOrderBody,
   validTshirt,
 } from '../test/helpers.ts'
 
-const ctx = createTestContext()
-const api = () => request(ctx.app)
+const ctx = createTestContext({ enableDemo: true })
 
-beforeEach(() => ctx.reset())
+// Most tests act as an admin, who can see and advance every order.
+let admin: SignedIn['agent']
+const api = () => admin
+
+beforeEach(async () => {
+  await ctx.reset()
+  admin = (await ctx.signIn('admin')).agent
+})
 afterAll(() => ctx.close())
 
 type Named = { customerName: string }
