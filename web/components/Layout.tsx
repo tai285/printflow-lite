@@ -1,4 +1,6 @@
-import { Link, NavLink, Outlet } from 'react-router'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router'
+import { useCurrentUser, useLogout } from '../api/auth.ts'
+import { secondaryButton } from './ui.tsx'
 import ThemeToggle from './ThemeToggle.tsx'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -9,6 +11,10 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
   }`
 
 export default function Layout() {
+  const user = useCurrentUser()
+  const logout = useLogout()
+  const navigate = useNavigate()
+
   return (
     <div className="min-h-screen">
       <a
@@ -27,13 +33,49 @@ export default function Layout() {
           </Link>
           <div className="flex items-center gap-3">
             <nav aria-label="Main" className="flex gap-1">
-              <NavLink to="/orders" className={navClass}>
-                Orders
-              </NavLink>
-              <NavLink to="/quotes/new" className={navClass}>
-                New quote
-              </NavLink>
+              {user && (
+                <>
+                  <NavLink to="/orders" className={navClass}>
+                    Orders
+                  </NavLink>
+                  <NavLink to="/quotes/new" className={navClass}>
+                    New quote
+                  </NavLink>
+                </>
+              )}
+              {user === null && (
+                <>
+                  <NavLink to="/login" className={navClass}>
+                    Sign in
+                  </NavLink>
+                  <NavLink to="/register" className={navClass}>
+                    Create account
+                  </NavLink>
+                </>
+              )}
             </nav>
+            {user && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-slate-600">
+                  {user.name}{' '}
+                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">
+                    {user.role}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className={`${secondaryButton} !px-3 !py-1.5`}
+                  disabled={logout.isPending}
+                  onClick={() =>
+                    logout.mutate(undefined, {
+                      onSettled: () => navigate('/login', { replace: true }),
+                    })
+                  }
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
             <ThemeToggle />
           </div>
         </div>

@@ -1,5 +1,8 @@
-// Smoke test for a running PrintFlow stack. Read-only apart from one rejected
-// (invalid) write, so it is safe to run against any environment.
+// Smoke test for a running PrintFlow stack. Apart from rejected (invalid or
+// unauthorised) writes it only reads, so it is safe to run anywhere.
+//
+// Signed-out checks always run. Set SMOKE_EMAIL and SMOKE_PASSWORD (any
+// existing account) to also check the signed-in API.
 //
 //   npm run smoke                       -> http://localhost:3000
 //   BASE_URL=http://host:3000 npm run smoke
@@ -10,6 +13,9 @@ const base = (process.env.BASE_URL ?? 'http://localhost:3000').replace(
   '',
 )
 const expectedVersion = process.env.EXPECT_VERSION
+const smokeEmail = process.env.SMOKE_EMAIL
+const smokePassword = process.env.SMOKE_PASSWORD
+const CSRF = { 'X-Requested-With': 'printflow' }
 const waitSeconds = Number(process.env.WAIT_SECONDS ?? 60)
 
 let failures = 0
@@ -49,31 +55,91 @@ try {
     )
   }
 
-  const list = await fetch(`${base}/api/orders`)
-  const orders = await list.json()
-  check('GET /api/orders returns an array', list.ok && Array.isArray(orders))
-
-  if (Array.isArray(orders) && orders.length > 0) {
-    const detail = await fetch(`${base}/api/orders/${orders[0].id}`)
-    const order = await detail.json()
-    check(
-      'GET /api/orders/:id returns the order with history',
-      detail.ok && order.id === orders[0].id && Array.isArray(order.history),
-    )
-  }
-
-  const invalid = await fetch(`${base}/api/orders`, {
+  // Signed out: private data is closed and writes need the CSRF header.
+  const anon = await fetch(`${base}/api/orders`)
+  check(
+    'GET /api/orders is closed to signed-out visitors',
+    anon.status === 401,
+    `HTTP ${anon.status}`,
+  )
+  const forged = await fetch(`${base}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: '{}',
   })
-  const invalidBody = await invalid.json()
   check(
-    'POST /api/orders rejects an empty body with field errors',
-    invalid.status === 400 &&
-      invalidBody.error?.fields?.customerName !== undefined,
-    `HTTP ${invalid.status}`,
+    'writes without the CSRF header are refused',
+    forged.status === 403,
+    `HTTP ${forged.status}`,
   )
+  const samples = await fetch(`${base}/api/samples`, {
+    method: 'POST',
+    headers: CSRF,
+  })
+  check(
+    'POST /api/samples is not open to signed-out visitors',
+    samples.status === 401 || samples.status === 404,
+    `HTTP ${samples.status}`,
+  )
+
+  if (smokeEmail && smokePassword) {
+    const login = await fetch(`${base}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...CSRF },
+      body: JSON.stringify({ email: smokeEmail, password: smokePassword }),
+    })
+    check(
+      'login succeeds and sets a session cookie',
+      login.status === 200 && login.headers.has('set-cookie'),
+      `HTTP ${login.status}`,
+    )
+    const cookie = (login.headers.get('set-cookie') ?? '').split(';')[0]
+    const authed = { cookie }
+
+    const list = await fetch(`${base}/api/orders`, { headers: authed })
+    const orders = await list.json()
+    check(
+      'signed in: GET /api/orders returns an array',
+      list.ok && Array.isArray(orders),
+    )
+
+    if (Array.isArray(orders) && orders.length > 0) {
+      const detail = await fetch(`${base}/api/orders/${orders[0].id}`, {
+        headers: authed,
+      })
+      const order = await detail.json()
+      check(
+        'signed in: GET /api/orders/:id returns the order with history',
+        detail.ok && order.id === orders[0].id && Array.isArray(order.history),
+      )
+    }
+
+    const invalid = await fetch(`${base}/api/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...CSRF, ...authed },
+      body: '{}',
+    })
+    const invalidBody = await invalid.json()
+    check(
+      'signed in: POST /api/orders rejects an empty body with field errors',
+      invalid.status === 400 &&
+        invalidBody.error?.fields?.customerName !== undefined,
+      `HTTP ${invalid.status}`,
+    )
+
+    await fetch(`${base}/api/auth/logout`, {
+      method: 'POST',
+      headers: { ...CSRF, ...authed },
+    })
+    const after = await fetch(`${base}/api/orders`, { headers: authed })
+    check(
+      'logout invalidates the session',
+      after.status === 401,
+      `HTTP ${after.status}`,
+    )
+  } else {
+    console.log('SKIP  signed-in checks (set SMOKE_EMAIL and SMOKE_PASSWORD)')
+  }
 
   const home = await fetch(`${base}/`)
   const html = await home.text()

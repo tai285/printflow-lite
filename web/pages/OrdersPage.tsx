@@ -7,6 +7,7 @@ import {
   isOrderStatus,
 } from '../../shared/orderStatus.ts'
 import type { OrderStatus } from '../../shared/orderStatus.ts'
+import { useCurrentUser } from '../api/auth.ts'
 import { useLoadSamples, useOrders, useRemoveSamples } from '../api/orders.ts'
 import {
   EmptyState,
@@ -30,6 +31,8 @@ export default function OrdersPage() {
 
   const [text, setText] = useState(q)
   const orders = useOrders({ q, status })
+  const me = useCurrentUser()
+  const canManageSamples = me?.role === 'admin' && me.demoEnabled
   const loadSamples = useLoadSamples()
   const removeSamples = useRemoveSamples()
 
@@ -53,7 +56,8 @@ export default function OrdersPage() {
 
   const filtered = q !== '' || status !== ''
   const list = orders.data
-  const hasSamples = list?.some((order) => order.isSample) ?? false
+  const hasSamples =
+    canManageSamples && (list?.some((order) => order.isSample) ?? false)
 
   return (
     <div className="space-y-5">
@@ -133,18 +137,22 @@ export default function OrdersPage() {
               <Link to="/quotes/new" className={primaryButton}>
                 Create quote
               </Link>
-              <button
-                type="button"
-                className={secondaryButton}
-                disabled={loadSamples.isPending}
-                onClick={() => loadSamples.mutate()}
-              >
-                {loadSamples.isPending ? 'Loading…' : 'Load sample orders'}
-              </button>
+              {canManageSamples && (
+                <button
+                  type="button"
+                  className={secondaryButton}
+                  disabled={loadSamples.isPending}
+                  onClick={() => loadSamples.mutate()}
+                >
+                  {loadSamples.isPending ? 'Loading…' : 'Load sample orders'}
+                </button>
+              )}
             </>
           }
         >
-          Create your first quote, or load fictional sample orders to explore.
+          {canManageSamples
+            ? 'Create your first quote, or load fictional sample orders to explore.'
+            : 'Create your first quote to start tracking an order.'}
         </EmptyState>
       )}
 

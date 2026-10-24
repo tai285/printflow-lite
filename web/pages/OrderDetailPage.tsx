@@ -2,6 +2,8 @@ import { Link, useLocation, useParams } from 'react-router'
 import { formatRM } from '../../shared/money.ts'
 import { STATUS_LABELS, nextStatus } from '../../shared/orderStatus.ts'
 import type { OrderStatus } from '../../shared/orderStatus.ts'
+import { isStaffRole } from '../../shared/roles.ts'
+import { useCurrentUser } from '../api/auth.ts'
 import { ApiError } from '../api/client.ts'
 import { useOrder, useTransition } from '../api/orders.ts'
 import BreakdownTable from '../components/BreakdownTable.tsx'
@@ -29,6 +31,7 @@ export default function OrderDetailPage() {
   const order = useOrder(id)
   useDocumentTitle(order.data ? `Order ${order.data.number}` : 'Order')
   const transition = useTransition(id)
+  const me = useCurrentUser()
 
   if (order.isPending) return <Spinner label="Loading order…" />
 
@@ -61,7 +64,8 @@ export default function OrderDetailPage() {
   }
 
   const data = order.data
-  const next = nextStatus(data.status)
+  // Only staff and admins move orders through production (the API enforces it too).
+  const next = me && isStaffRole(me.role) ? nextStatus(data.status) : null
   const error = transition.error
 
   return (

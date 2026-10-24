@@ -34,6 +34,10 @@ services:
       PORT: '3000'
       # Load fictional sample orders when the database is empty.
       SEED_ON_START: ${SEED_ON_START:-true}
+      # This compose file is the local demo; never set this where real data lives.
+      ENABLE_DEMO: 'true'
+      # Login/sign-up attempts per IP per minute; the browser tests raise it.
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-10}
     ports:
       - '3000:3000'
 

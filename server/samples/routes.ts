@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { RequestHandler } from 'express'
 import type { Db } from '../db/client.ts'
+import { requireRole } from '../auth/middleware.ts'
 import { removeSamples, seedSamples } from '../db/seed.ts'
 
 /**
@@ -9,6 +10,7 @@ import { removeSamples, seedSamples } from '../db/seed.ts'
  */
 export function samplesRouter(db: Db, writeLimiter: RequestHandler): Router {
   const router = Router()
+  router.use(requireRole('admin'))
 
   // Replaces any existing sample orders with a fresh set.
   router.post('/', writeLimiter, async (_req, res) => {

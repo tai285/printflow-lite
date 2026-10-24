@@ -3,6 +3,7 @@ import { render } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { MemoryRouter } from 'react-router'
 import { vi } from 'vitest'
+import type { MeResponse, UserRole } from '../../shared/roles.ts'
 
 export function renderWithProviders(ui: ReactElement, route = '/') {
   const queryClient = new QueryClient({
@@ -21,13 +22,40 @@ export type FetchHandler = (
   init: RequestInit | undefined,
 ) => MockResponse | undefined
 
-/** Replaces global fetch with a handler that returns canned JSON responses. */
-export function mockFetch(handler: FetchHandler) {
+export const meFor = (role: UserRole, demoEnabled = true): MeResponse => ({
+  id: '22222222-2222-4222-8222-222222222222',
+  email: `${role}@example.com`,
+  name: `Test ${role}`,
+  role,
+  demoEnabled,
+})
+
+/**
+ * Replaces global fetch with a handler that returns canned JSON responses.
+ * GET /api/auth/me answers for the given role (admin by default), or 401 for
+ * `null` (signed out).
+ */
+export function mockFetch(
+  handler: FetchHandler,
+  options: { me?: MeResponse | null | (() => MeResponse | null) } = {},
+) {
+  const meOption = options.me === undefined ? meFor('admin') : options.me
   const calls: { url: string; method: string }[] = []
   const fn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
     calls.push({ url, method: init?.method ?? 'GET' })
-    const result = handler(url, init)
+    const me = typeof meOption === 'function' ? meOption() : meOption
+    const result =
+      url === '/api/auth/me'
+        ? me
+          ? { body: me }
+          : {
+              status: 401,
+              body: {
+                error: { code: 'UNAUTHENTICATED', message: 'Please sign in' },
+              },
+            }
+        : handler(url, init)
     if (!result)
       throw new Error(`Unexpected fetch: ${init?.method ?? 'GET'} ${url}`)
     return new Response(

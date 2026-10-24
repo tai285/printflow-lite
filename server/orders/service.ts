@@ -56,7 +56,7 @@ function toEvent(row: EventRow): OrderStatusEvent {
 export async function createOrder(
   db: Db,
   request: CreateOrderRequest,
-  options: { isSample?: boolean } = {},
+  options: { isSample?: boolean; ownerId?: string } = {},
 ): Promise<OrderDetail> {
   const breakdown = calculateQuote(request.input)
 
@@ -72,6 +72,7 @@ export async function createOrder(
         totalSen: breakdown.totalSen,
         pricingVersion: PRICING_VERSION,
         isSample: options.isSample ?? false,
+        ownerId: options.ownerId,
       })
       .returning()
     const [event] = await tx
@@ -89,9 +90,10 @@ function escapeLike(text: string): string {
 
 export async function listOrders(
   db: Db,
-  filters: { status?: OrderStatus; q?: string },
+  filters: { status?: OrderStatus; q?: string; ownerId?: string },
 ): Promise<Order[]> {
   const conditions = []
+  if (filters.ownerId) conditions.push(eq(orders.ownerId, filters.ownerId))
   if (filters.status) conditions.push(eq(orders.status, filters.status))
 
   const q = filters.q?.trim()
@@ -122,11 +124,21 @@ export async function listOrders(
   return rows.map(toOrder)
 }
 
-export async function getOrder(db: Db, id: string): Promise<OrderDetail> {
+/**
+ * With `scope.ownerId` set, an order owned by someone else is reported as
+ * not found (404, not 403) so its existence is not revealed.
+ */
+export async function getOrder(
+  db: Db,
+  id: string,
+  scope: { ownerId?: string } = {},
+): Promise<OrderDetail> {
   if (!UUID_PATTERN.test(id)) throw notFound('Order')
 
   const [row] = await db.select().from(orders).where(eq(orders.id, id))
-  if (!row) throw notFound('Order')
+  if (!row || (scope.ownerId && row.ownerId !== scope.ownerId)) {
+    throw notFound('Order')
+  }
 
   const events = await db
     .select()

@@ -83,13 +83,22 @@ npm run dev                      # web http://localhost:5173 (proxies /api), API
 | `npm run dev`                                      | Vite dev server + API with auto-restart                       |
 | `npm test`                                         | Unit and component tests (no database needed)                 |
 | `npm run test:int`                                 | API integration tests against real PostgreSQL                 |
-| `npm run e2e`                                      | Browser tests against the running Docker stack                |
+| `npm run e2e`                                      | Browser tests against the running Docker stack (needs admin)  |
 | `npm run smoke`                                    | Smoke checks against the running stack                        |
+| `npm run user:create`                              | Create a user, e.g. the first admin (see below)               |
 | `npm run public:up` / `public:url` / `public:down` | Publish the stack through a free Cloudflare tunnel            |
 | `npm run typecheck` / `lint` / `format:check`      | Static checks                                                 |
 | `npm run build`                                    | Type-check and build the web app to `dist/web`                |
 | `npm run db:generate`                              | Generate a SQL migration after changing `server/db/schema.ts` |
 | `npm run db:migrate` / `db:seed`                   | Apply migrations / replace sample orders                      |
+
+Accounts: customers sign up in the UI; staff and admins are created from the command line. The first admin:
+
+```bash
+PF_PASSWORD='at-least-12-chars' npm run user:create -- you@example.com "Your Name" admin
+```
+
+`npm run e2e` and `npm run smoke` sign in with an existing account: set `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` (and `SMOKE_EMAIL` / `SMOKE_PASSWORD` for the signed-in smoke checks). Browser tests register many accounts in a minute, so start the stack with `AUTH_RATE_LIMIT_MAX=1000`. CI does all of this automatically.
 
 `npm run test:int` needs PostgreSQL (`docker compose up -d db`); it creates a separate `printflow_test` database. First-time browser tests need `npx playwright install chromium`.
 
@@ -97,17 +106,23 @@ npm run dev                      # web http://localhost:5173 (proxies /api), API
 
 All errors use the shape `{ "error": { "code", "message", "fields?" } }`.
 
-| Method & path                              | Description                                                      | Success   | Errors                                          |
-| ------------------------------------------ | ---------------------------------------------------------------- | --------- | ----------------------------------------------- |
-| `GET /api/health`                          | Liveness, database check and build version                       | 200       | 503 if the database is down                     |
-| `GET /api/orders?q=&status=`               | List orders, newest first                                        | 200       | 400 unknown status                              |
-| `POST /api/orders`                         | Create a quote; the price is computed by the server              | 201       | 400 `VALIDATION_ERROR` with `fields`            |
-| `GET /api/orders/:id`                      | One order with status history                                    | 200       | 404                                             |
-| `POST /api/orders/:id/transitions`         | Move to the next status: `{ "from": "quote", "to": "approved" }` | 200       | 400, 404, 409 `CONFLICT` / `INVALID_TRANSITION` |
-| `POST /api/samples`, `DELETE /api/samples` | Replace / remove the sample orders (real orders untouched)       | 201 / 200 | 429                                             |
+| Method & path                                                      | Description                                                                  | Success               | Errors                                               |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------- | --------------------- | ---------------------------------------------------- |
+| `GET /api/health`                                                  | Liveness, database check and build version                                   | 200                   | 503 if the database is down                          |
+| `POST /api/auth/register`, `/login`, `/logout`; `GET /api/auth/me` | Sign up (always a customer), sign in, sign out, current user                 | 201 / 200 / 204 / 200 | 400, 401, 429                                        |
+| `GET /api/orders?q=&status=`                                       | List orders, newest first (customers: only their own)                        | 200                   | 400 unknown status, 401                              |
+| `POST /api/orders`                                                 | Create a quote; the price is computed by the server                          | 201                   | 400 `VALIDATION_ERROR` with `fields`                 |
+| `GET /api/orders/:id`                                              | One order with status history                                                | 200                   | 404                                                  |
+| `POST /api/orders/:id/transitions`                                 | Staff/admin only. Next status: `{ "from": "quote", "to": "approved" }`       | 200                   | 400, 403, 404, 409 `CONFLICT` / `INVALID_TRANSITION` |
+| `POST /api/samples`, `DELETE /api/samples`                         | Admin only, and only when `ENABLE_DEMO=true`: replace / remove sample orders | 201 / 200             | 401, 403, 404, 429                                   |
+
+Every `/api/orders` route needs a session cookie, and every write needs the header `X-Requested-With: printflow` (CSRF defence). Security status and open gaps: [docs/SECURITY.md](docs/SECURITY.md).
 
 ```bash
-curl -s localhost:3000/api/orders -H 'Content-Type: application/json' -d '{
+curl -s -c jar -X POST localhost:3000/api/auth/login -H 'Content-Type: application/json' \
+  -H 'X-Requested-With: printflow' -d '{"email":"you@example.com","password":"..."}'
+curl -s -b jar localhost:3000/api/orders -H 'Content-Type: application/json' \
+  -H 'X-Requested-With: printflow' -d '{
   "customerName": "Aisyah",
   "input": { "productId": "tshirt", "method": "screen", "quantity": 50,
              "locations": 1, "colours": 2, "rush": false }

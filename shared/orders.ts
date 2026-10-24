@@ -32,6 +32,8 @@ export type OrderDetail = Order & { history: OrderStatusEvent[] }
 
 export type ApiErrorCode =
   | 'VALIDATION_ERROR'
+  | 'UNAUTHENTICATED'
+  | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'INVALID_TRANSITION'
   | 'CONFLICT'

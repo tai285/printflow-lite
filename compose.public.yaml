@@ -13,6 +13,8 @@ services:
       # Nobody is logged in, so wipe visitor data hourly and limit writes.
       DEMO_RESET_MINUTES: '60'
       RATE_LIMIT_MAX: '30'
+      # Cloudflare serves the tunnel over HTTPS.
+      COOKIE_SECURE: 'true'
       # One reverse proxy (the tunnel) sits in front of the app.
       TRUST_PROXY: '1'
       # Set to a permanent public address to make the site indexable.

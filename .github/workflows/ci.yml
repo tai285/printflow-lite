@@ -66,6 +66,13 @@ jobs:
     timeout-minutes: 20
     env:
       GIT_SHA: ${{ github.sha }}
+      # Throwaway account for this run only; the database is deleted afterwards.
+      # The browser tests sign in and register many accounts within a minute.
+      AUTH_RATE_LIMIT_MAX: '1000'
+      E2E_ADMIN_EMAIL: ci-admin@example.com
+      E2E_ADMIN_PASSWORD: ci-only-password-12345
+      SMOKE_EMAIL: ci-admin@example.com
+      SMOKE_PASSWORD: ci-only-password-12345
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -80,6 +87,10 @@ jobs:
       # The exact stack a developer starts locally: Postgres + app in containers.
       - name: Start the stack
         run: docker compose up --build -d --wait --wait-timeout 120
+      - name: Create the CI admin account
+        run: >-
+          docker compose exec -T -e PF_PASSWORD="$E2E_ADMIN_PASSWORD" app
+          node server/auth/create-user.ts "$E2E_ADMIN_EMAIL" "CI Admin" admin
       - name: Smoke test
         run: npm run smoke
         env:
