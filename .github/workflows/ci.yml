@@ -118,3 +118,28 @@ jobs:
       - name: Stop the stack
         if: always()
         run: docker compose down -v
+
+  # Continuous delivery, step 1: publish the image that just passed every check.
+  # Only runs for pushes to main, never for pull requests. The server that runs
+  # the app pulls it with `npm run deploy` (see docs/DEPLOYMENT.md).
+  publish:
+    name: Publish image to GitHub Container Registry
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [quality, integration, stack]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build and push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build --build-arg GIT_SHA="$GITHUB_SHA" -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:latest" .
+          docker push "$IMAGE:$GITHUB_SHA"
+          docker push "$IMAGE:latest"
+          echo "Published $IMAGE:$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"

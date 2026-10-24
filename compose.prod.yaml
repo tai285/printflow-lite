@@ -1,0 +1,76 @@
+# Production stack: pulls the image CI published, no demo features, real login.
+#
+#   cp .env.production.example .env.production   (then fill it in)
+#   npm run deploy                                 (pull newest image, restart, verify)
+#
+# Nothing is published on the host's network: visitors reach the app only
+# through the Cloudflare tunnel, which makes an outbound connection.
+# Pick the tunnel with COMPOSE_PROFILES in .env.production:
+#   quick  free trycloudflare.com address that changes on restart
+#   named  stable address on your own hostname (needs TUNNEL_TOKEN)
+name: printflow-prod
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: printflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}
+      POSTGRES_DB: printflow
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U printflow -d printflow']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    security_opt: ['no-new-privileges:true']
+
+  app:
+    image: ${PF_IMAGE:-ghcr.io/tai285/printflow-lite}:${PF_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Use a URL-safe password (for example `openssl rand -hex 24`).
+      DATABASE_URL: postgres://printflow:${POSTGRES_PASSWORD}@db:5432/printflow
+      NODE_ENV: production
+      PORT: '3000'
+      # Served over HTTPS by Cloudflare, through exactly one proxy.
+      COOKIE_SECURE: 'true'
+      TRUST_PROXY: '1'
+      # Real customers: no demo helpers, no sample data, no periodic wipe.
+      ENABLE_DEMO: 'false'
+      SEED_ON_START: 'false'
+      DEMO_RESET_MINUTES: '0'
+      SITE_URL: ${SITE_URL:-}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-60}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-10}
+    # The app only writes to the database, never to its own filesystem.
+    read_only: true
+    tmpfs: ['/tmp']
+    cap_drop: ['ALL']
+    security_opt: ['no-new-privileges:true']
+
+  tunnel-quick:
+    profiles: ['quick']
+    image: cloudflare/cloudflared:2026.10.3
+    command: tunnel --no-autoupdate --url http://app:3000
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+
+  tunnel-named:
+    profiles: ['named']
+    image: cloudflare/cloudflared:2026.10.3
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN:-}
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  pgdata:
