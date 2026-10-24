@@ -1,5 +1,67 @@
 # Hosting and deployment (free, self-hosted)
 
+## Production: continuous delivery
+
+```
+git push / merge to main
+  └─ CI: quality + integration + stack (smoke, e2e)  all green
+       └─ publish job: builds the image, pushes ghcr.io/tai285/printflow-lite:<commit-sha> and :latest
+            └─ on the server:  npm run deploy   (pulls the newest image, restarts, verifies, rolls back on failure)
+                 └─ Cloudflare tunnel (outbound only) ──► https address
+```
+
+The image is published automatically, only from `main`, only after every check passes. The server pulls it when you run `npm run deploy` (pull-based, so the server never accepts inbound connections and CI holds no credentials for it).
+
+### One-time setup
+
+1. **Make the package pullable.** After the first publish run on `main`, open GitHub → your profile → Packages → `printflow-lite` → Package settings → change visibility to **Public** (the code is public anyway). Otherwise run `docker login ghcr.io` on the server with a token that has `read:packages`.
+2. **Configure the server.** On the machine that runs the app:
+   ```bash
+   cp .env.production.example .env.production
+   # set POSTGRES_PASSWORD (openssl rand -hex 24) and choose COMPOSE_PROFILES=quick or named
+   ```
+3. **Stop the old demo stack** if it is running (`npm run public:down`, then `docker compose down`), because it has no login and wipes data.
+4. **Deploy:** `npm run deploy`. It prints the public address for a quick tunnel.
+5. **Create the first admin** (customers sign up themselves):
+   ```bash
+   docker compose --env-file .env.production -f compose.prod.yaml exec -T -e PF_PASSWORD='a-long-password' app \
+     node server/auth/create-user.ts you@example.com "Your Name" admin
+   ```
+
+### Every release
+
+```bash
+npm run deploy                 # newest image
+npm run deploy -- <commit-sha> # a specific build; this is also the rollback command
+```
+
+The script pulls the image, runs `docker compose up --wait` (waits for the health checks), confirms the app reports the expected build, and records it as the last good build. If the new build does not come up healthy it restores the last good one and exits with an error.
+
+### What the production stack does differently from the demo
+
+|                                        | Demo (`compose.yaml` + `compose.public.yaml`) | Production (`compose.prod.yaml`)                                  |
+| -------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------- |
+| Image                                  | built from source locally                     | pulled from GHCR (built and tested by CI)                         |
+| Demo helpers, sample data, hourly wipe | on                                            | off (`ENABLE_DEMO=false`)                                         |
+| Database password                      | default `printflow`                           | required, from `.env.production`                                  |
+| Database port on the host              | published                                     | not published                                                     |
+| Cookies                                | plain                                         | `Secure`, with HSTS (`COOKIE_SECURE=true`)                        |
+| Container                              | default                                       | read-only filesystem, all capabilities dropped, no-new-privileges |
+
+### Stable address (named tunnel)
+
+A quick tunnel's address changes whenever the tunnel container is recreated, which is fine for testing but not for customers. For a stable address you need a hostname on a Cloudflare-managed domain: create a tunnel in Cloudflare Zero Trust, point its public hostname at `http://app:3000`, then set `COMPOSE_PROFILES=named`, `TUNNEL_TOKEN=...` and `SITE_URL=https://your-hostname` in `.env.production` and run `npm run deploy`. The named profile is defined and validated in `compose.prod.yaml` but has not been run against a real Cloudflare account.
+
+### What is verified, and what is not
+
+Verified locally: the production compose file under the hardened settings, deploy, upgrade and rollback with locally built images, no demo endpoints, `Secure` cookies and HSTS. **Not verified until it runs:** the GitHub Actions publish job, pulling from GHCR, either tunnel with this compose file, and the first real deploy.
+
+---
+
+# Demo hosting (no login, throwaway data)
+
+Everything below describes the older public **demo** stack. Do not use it for real customer data.
+
 Goal: put PrintFlow Lite on the public internet with no paid service, no VPS and no purchased domain, using only things we run ourselves.
 
 ## What is set up

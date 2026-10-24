@@ -86,6 +86,7 @@ npm run dev                      # web http://localhost:5173 (proxies /api), API
 | `npm run e2e`                                      | Browser tests against the running Docker stack (needs admin)  |
 | `npm run smoke`                                    | Smoke checks against the running stack                        |
 | `npm run user:create`                              | Create a user, e.g. the first admin (see below)               |
+| `npm run deploy`                                   | Production: pull newest image, restart, verify, roll back     |
 | `npm run public:up` / `public:url` / `public:down` | Publish the stack through a free Cloudflare tunnel            |
 | `npm run typecheck` / `lint` / `format:check`      | Static checks                                                 |
 | `npm run build`                                    | Type-check and build the web app to `dist/web`                |

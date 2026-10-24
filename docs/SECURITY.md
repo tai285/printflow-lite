@@ -19,10 +19,13 @@ implemented and tested in this repository; everything else is an open gap.
 | HSTS (Helmet default) and CSP `upgrade-insecure-requests` when `COOKIE_SECURE=true`                                                                                                           | `server/app.ts`                     | manual                  |
 | Web: signed-out visitors redirected to sign-in; 401 mid-session ends the session in the UI; no cached orders survive logout                                                                   | `web/api/`                          | unit + e2e              |
 
+| Production compose: read-only filesystem, all capabilities dropped, no-new-privileges, database port not published, required database password, demo off | `compose.prod.yaml` | local run (not CI) |
+| Image published only from `main` after all checks pass; deploy verifies the running build and rolls back on failure | `.github/workflows/ci.yml`, `scripts/deploy.mjs` | local run only |
+
 ## Open gaps (not done)
 
 - **Public read-only demo.** Deferred. Visitors must register; sample orders have no owner so only staff/admins see them. Public tunnel overlay (`compose.public.yaml`) still has `ENABLE_DEMO` on and wipes all orders hourly, so never put real data there.
-- **TLS and secrets in a real deployment.** Not provisioned or verified. `compose.yaml` still has the default database password (local use only).
+- **TLS and secrets in a real deployment.** TLS comes from Cloudflare and is not verified end to end yet. `compose.yaml` (local demo) still has the default database password; `compose.prod.yaml` requires one.
 - **Least-privilege DB roles; migrations as a separate CI/CD step.** The app still migrates on start with the same role.
 - **Login lockout per account, password reset, email verification, MFA.**
 - **Rate limiting uses in-memory counters** (not shared between instances).

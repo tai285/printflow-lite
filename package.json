@@ -26,6 +26,7 @@
     "db:seed": "node --env-file-if-exists=.env server/db/seed.ts",
     "smoke": "node scripts/smoke.mjs",
     "e2e": "playwright test",
+    "deploy": "node scripts/deploy.mjs",
     "public:up": "docker compose -f compose.yaml -f compose.public.yaml up --build -d --wait && node scripts/public-url.mjs",
     "public:url": "node scripts/public-url.mjs",
     "public:down": "docker compose -f compose.yaml -f compose.public.yaml down"
