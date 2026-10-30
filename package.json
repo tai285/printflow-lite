@@ -32,7 +32,7 @@
     "public:down": "docker compose -f compose.yaml -f compose.public.yaml down"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.104.5",
+    "@tanstack/react-query": "^5.105.0",
     "drizzle-orm": "^0.45.4",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
